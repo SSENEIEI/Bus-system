@@ -18,27 +18,38 @@ export function getPool() {
   if (!pool) {
     // Determine pool size once
     const connectionLimit = Number(process.env.DB_POOL_SIZE || (preferLocal ? 10 : 5));
+    const ensureUrlHasTiDBSSL = (raw) => {
+      try {
+        const u = new URL(raw);
+        const isTiDB = /tidbcloud\.com$/i.test(u.hostname || '');
+        if (isTiDB) {
+          const sp = u.searchParams;
+          if (!sp.has('ssl')) sp.set('ssl', JSON.stringify({ rejectUnauthorized: true }));
+          if (!sp.has('timezone')) sp.set('timezone', 'Z');
+          u.search = sp.toString();
+          return u.toString();
+        }
+      } catch {}
+      return raw;
+    };
 
     // 1) Production TiDB via DATABASE_URL (only if not preferring local)
     if (!preferLocal && process.env.DATABASE_URL) {
-      pool = mysql.createPool({
-        uri: process.env.DATABASE_URL,
-        waitForConnections: true,
-        connectionLimit,
-        queueLimit: 0
-      });
+      const url = ensureUrlHasTiDBSSL(process.env.DATABASE_URL);
+      pool = mysql.createPool(url);
     }
     // 2) Explicit host/user via env (works for local XAMPP or any MySQL)
     else if (process.env.DB_HOST || process.env.DB_USERNAME) {
       const isLocalHost = (process.env.DB_HOST || '').includes('localhost') || (process.env.DB_HOST || '').startsWith('127.');
-      const useSSL = process.env.DB_SSL === 'true' && !isLocalHost; // avoid SSL for XAMPP
+      const isTiDB = /tidbcloud\.com$/i.test(process.env.DB_HOST || '');
+      const useSSL = ((process.env.DB_SSL === 'true') || isTiDB) && !isLocalHost; // force SSL for TiDB
       pool = mysql.createPool({
         host: process.env.DB_HOST || 'localhost',
         port: Number(process.env.DB_PORT || 3306),
         user: process.env.DB_USERNAME || 'root',
         password: process.env.DB_PASSWORD || '',
   database: process.env.DB_DATABASE || 'Bus-system',
-        ...(useSSL ? { ssl: { rejectUnauthorized: true }, timezone: 'Z' } : {}),
+        ...(useSSL ? { ssl: { rejectUnauthorized: true, minVersion: 'TLSv1.2', servername: process.env.DB_HOST }, timezone: 'Z' } : {}),
         waitForConnections: true,
         connectionLimit,
         queueLimit: 0
@@ -113,7 +124,7 @@ export async function initDatabase(options = {}) {
       port,
       user,
       password,
-      ...(useSSL ? { ssl: { rejectUnauthorized: true } } : {}),
+      ...(useSSL ? { ssl: { rejectUnauthorized: true, minVersion: 'TLSv1.2', servername: host } } : {}),
     });
     try {
       await bootstrapConn.query(
