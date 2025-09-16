@@ -247,7 +247,7 @@ export default function TruckTable() {
               {routes.map((r, index) => (
                 <tr key={r.id}>
                   <td style={styles.tdRoute}><span style={styles.routeIndex}>{index+1}.</span> <span>{r.name}</span></td>
-                  {departTimes.map((dt) => {
+                  {departTimes.map((dt, dtIdx) => {
                     const rec = countsBy[dt.id] || { map:{}, ttl:{} };
                     const ttl = Number(rec.ttl?.[r.id]||0);
                     return (
@@ -255,19 +255,23 @@ export default function TruckTable() {
                         {plantsSorted.map(p => {
                           const pid = p.id; const val = Number(rec.map?.[r.id]?.[pid]||0);
                           return (
-                            <td key={`cell-${dt.id}-${r.id}-${pid}`} style={styles.tdCell}>
+                            <td key={`cell-${dt.id}-${r.id}-${pid}`} style={{ ...styles.tdCell, background: getTimeBodyBg(dtIdx) }}>
                               {val>0 ? <span style={{ fontWeight: 700 }}>{val} </span> : ''}
                             </td>
                           );
                         })}
-                        <td key={`ttl-${dt.id}-${r.id}`} style={{...styles.tdCell}}>{ttl>0? <span style={{ fontWeight: 800 }}>{ttl} </span> : ''}</td>
+                        <td key={`ttl-${dt.id}-${r.id}`} style={{...styles.tdCell, background: getTimeTotalBg(dtIdx)}}>{ttl>0? <span style={{ fontWeight: 800 }}>{ttl} </span> : ''}</td>
                         <td
                           key={`car-${dt.id}-${r.id}`}
-                          style={{...styles.tdCell, cursor: isAdminga ? 'pointer' : 'default', background: isAdminga ? '#fffef7' : '#ffffff' }}
+                          style={{
+                            ...styles.tdCell,
+                            cursor: isAdminga ? 'pointer' : 'default',
+                            background: getTimeCarBg(dtIdx)
+                          }}
                           onClick={() => openCarEdit(dt, r, ttl)}
                         >
                           <span style={{ fontWeight: 900 }}>
-                            {(carPlan?.[dt.id]?.[r.id] ?? calcVehicles(ttl))} คัน
+                            {(() => { const c = Number(carPlan?.[dt.id]?.[r.id] ?? calcVehicles(ttl)) || 0; return `${c} คัน`; })()}
                           </span>
                         </td>
                       </Fragment>
@@ -275,6 +279,41 @@ export default function TruckTable() {
                   })}
                 </tr>
               ))}
+
+              {/* Totals row */}
+              <tr key="totals-row">
+                <td style={styles.tdRouteTotal}><strong>รวม</strong></td>
+                {departTimes.map((dt, dtIdx) => {
+                  const rec = countsBy[dt.id] || { map:{}, ttl:{} };
+                  // Sum per plant across all routes
+                  const plantTotals = plantsSorted.map((p) => {
+                    let sum = 0;
+                    for (const r of routes) {
+                      sum += Number(rec.map?.[r.id]?.[p.id] || 0);
+                    }
+                    return sum;
+                  });
+                  // Sum TTL across routes
+                  let ttlTotal = 0;
+                  for (const r of routes) ttlTotal += Number(rec.ttl?.[r.id] || 0);
+                  // Sum vehicles (use override if exists, else derived from ttl)
+                  let totalVehicles = 0;
+                  for (const r of routes) {
+                    const rTtl = Number(rec.ttl?.[r.id] || 0);
+                    const cars = Number(carPlan?.[dt.id]?.[r.id] ?? calcVehicles(rTtl)) || 0;
+                    totalVehicles += cars;
+                  }
+                  return (
+                    <Fragment key={`totals-${dt.id}`}>
+                      {plantTotals.map((val, i) => (
+                        <td key={`tot-${dt.id}-p-${i}`} style={{ ...styles.tdTotal, background: getTimeBodyBg(dtIdx) }}><strong>{val>0 ? val : ''}</strong></td>
+                      ))}
+                      <td key={`tot-${dt.id}-ttl`} style={{ ...styles.tdTotal, background: getTimeTotalBg(dtIdx) }}><strong>{ttlTotal>0 ? ttlTotal : ''}</strong></td>
+                      <td key={`tot-${dt.id}-cars`} style={{ ...styles.tdTotal, background: getTimeCarBg(dtIdx) }}><strong>{`${totalVehicles} คัน`}</strong></td>
+                    </Fragment>
+                  );
+                })}
+              </tr>
             </tbody>
           </table>
           </div>
@@ -329,6 +368,8 @@ const styles = {
   tdRoute: { border:'1px solid #dfe6ee', padding:8, fontWeight:800, color:'#2f3e4f', width:280, background:'#ffffff', fontSize:13, whiteSpace:'nowrap' },
   routeIndex: { display:'inline-block', width:24, textAlign:'right', marginRight:6 },
   tdCell: { border:'1px solid #e6edf3', padding:6, minWidth:60, height:36, background:'#ffffff', textAlign:'center', fontSize:12 },
+  tdTotal: { border:'1px solid #e6edf3', padding:6, minWidth:60, height:36, background:'#f6fbff', textAlign:'center', fontSize:12 },
+  tdRouteTotal: { border:'1px solid #dfe6ee', padding:8, fontWeight:900, color:'#2f3e4f', width:280, background:'#eef6ff', fontSize:13, whiteSpace:'nowrap', textAlign:'center' },
   overlay: { position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1000 },
   modal: { background:'#fff', padding:30, borderRadius:12, boxShadow:'0 10px 30px rgba(0,0,0,0.2)', width:'90%', maxWidth:500, zIndex:1001, position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)' },
   modalTitle: { fontSize:22, fontWeight:600, color:'#2c3e50', marginBottom:20, textAlign:'center' },
@@ -343,4 +384,41 @@ const styles = {
 function getTimeColor(idx){
   const palette = ['#FFFB0D', '#F562D6', '#02AE4E', '#00B0EF', '#F07D2E', '#7230A0'];
   return palette[idx % palette.length];
+}
+
+// Color utils: blend a base color with white to get softer shades for cell backgrounds
+function hexToRgb(hex){
+  let c = (hex || '').replace('#','');
+  if (c.length === 3) c = c.split('').map((ch) => ch + ch).join('');
+  const num = parseInt(c, 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+function rgbToHex(r,g,b){
+  const toHex = (n) => n.toString(16).padStart(2, '0');
+  return `#${toHex(Math.min(255, Math.max(0, r)))}${toHex(Math.min(255, Math.max(0, g)))}${toHex(Math.min(255, Math.max(0, b)))}`;
+}
+// alpha: 0..1, contribution of base color vs white
+function blendWithWhite(hex, alpha){
+  const { r, g, b } = hexToRgb(hex);
+  const nr = Math.round(r * alpha + 255 * (1 - alpha));
+  const ng = Math.round(g * alpha + 255 * (1 - alpha));
+  const nb = Math.round(b * alpha + 255 * (1 - alpha));
+  return rgbToHex(nr, ng, nb);
+}
+// Derive per-time body and car cell backgrounds
+function getTimeBodyBg(idx){
+  const base = getTimeColor(idx);
+  return blendWithWhite(base, 0.18); // very light shade
+}
+function getTimeTotalBg(idx){
+  const base = getTimeColor(idx);
+  return blendWithWhite(base, 0.14); // even lighter for totals
+}
+function getTimeCarBg(idx){
+  const base = getTimeColor(idx);
+  return blendWithWhite(base, 0.32); // slightly stronger shade
 }
