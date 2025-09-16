@@ -5,6 +5,10 @@ import { getUserFromRequest, requireAdmin } from '@/lib/auth';
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const shiftId = searchParams.get('shiftId');
+  // Cleanup: auto-delete entries that were soft-hidden > 3 hours ago
+  try {
+    await query(`DELETE FROM depart_times WHERE is_active = 0 AND deactivated_at IS NOT NULL AND deactivated_at < DATE_SUB(NOW(), INTERVAL 3 HOUR)`);
+  } catch {}
   const rows = await query(
     shiftId
       ? 'SELECT id, shift_id, time, is_active FROM depart_times WHERE shift_id = ? ORDER BY time'
@@ -18,7 +22,13 @@ export async function POST(request) {
   const user = await getUserFromRequest(request);
   try { requireAdmin(user); } catch (e) { return NextResponse.json({ error: e.message }, { status: e.status || 403 }); }
   const { shift_id, time, is_active = 1 } = await request.json();
-  await query('INSERT INTO depart_times (shift_id, time, is_active) VALUES (?,?,?)', [shift_id, time, is_active ? 1 : 0]);
+  // If exists (soft-hidden), reactivate; else insert
+  const existing = await query('SELECT id FROM depart_times WHERE shift_id = ? AND time = ?', [shift_id, time]);
+  if (existing.length) {
+    await query('UPDATE depart_times SET is_active=?, deactivated_at=NULL WHERE id=?', [is_active ? 1 : 0, existing[0].id]);
+  } else {
+    await query('INSERT INTO depart_times (shift_id, time, is_active) VALUES (?,?,?)', [shift_id, time, is_active ? 1 : 0]);
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -28,6 +38,21 @@ export async function DELETE(request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 });
-  await query('DELETE FROM depart_times WHERE id = ?', [id]);
+  // Soft-hide: mark inactive and stamp deactivated_at; cascade delete will be handled after 3 hours by cleanup in GET (or future cron)
+  await query('UPDATE depart_times SET is_active = 0, deactivated_at = NOW() WHERE id = ?', [id]);
+  return NextResponse.json({ ok: true, softDeleted: true });
+}
+
+export async function PATCH(request) {
+  const user = await getUserFromRequest(request);
+  try { requireAdmin(user); } catch (e) { return NextResponse.json({ error: e.message }, { status: e.status || 403 }); }
+  const body = await request.json();
+  const { id, is_active } = body || {};
+  if (!id || typeof is_active === 'undefined') return NextResponse.json({ error: 'missing id or is_active' }, { status: 400 });
+  if (is_active) {
+    await query('UPDATE depart_times SET is_active = 1, deactivated_at = NULL WHERE id = ?', [id]);
+  } else {
+    await query('UPDATE depart_times SET is_active = 0, deactivated_at = NOW() WHERE id = ?', [id]);
+  }
   return NextResponse.json({ ok: true });
 }
