@@ -583,6 +583,7 @@ export default function Home() {
   const [newShiftTh, setNewShiftTh] = useState("");
   const [newShiftEn, setNewShiftEn] = useState("");
   const [newDepartTime, setNewDepartTime] = useState("");
+  const [editingDepartTime, setEditingDepartTime] = useState(null); // { id, time }
 
   // OT master data (from APIs)
   const [otPlants, setOtPlants] = useState([]); // [{id, code, name}]
@@ -2279,22 +2280,54 @@ export default function Home() {
               </div>
               <div style={{ border:'1px solid #ecf0f1', borderRadius:8, maxHeight: 260, overflowY: 'auto' }}>
                 {otDepartTimes.filter(t=>!selectedShiftId || t.shift_id === selectedShiftId).map(t => (
-                  <div key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderBottom:'1px solid #ecf0f1' }}>
-                    <div>
+                  <div key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderBottom:'1px solid #ecf0f1', gap:10 }}>
+                    <div style={{ flex:1 }}>
                       <div style={{ fontWeight:700, color:'#2f3e4f' }}>{(otShifts.find(s=>s.id===t.shift_id)?.name_th) || 'กะ'}</div>
-                      <div style={{ fontSize:12, color:'#7f8c8d' }}>{formatTime(t.time)} น.</div>
+                      <div style={{ fontSize:12, color:'#7f8c8d' }}>
+                        {editingDepartTime?.id === t.id ? (
+                          <input type="time" value={editingDepartTime.time}
+                                 onChange={(e)=> setEditingDepartTime(prev=> ({ ...prev, time: e.target.value }))}
+                                 style={{ ...styles.modalInput, width:140 }} />
+                        ) : (
+                          <>{formatTime(t.time)} น.</>
+                        )}
+                      </div>
                     </div>
-                    <button
-                      onClick={async ()=>{
-                        if (!confirm('ลบเวลาออกนี้?')) return;
-                        const token = localStorage.getItem('token');
-                        const res = await fetch(`/api/ot/depart-times?id=${t.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-                        const data = await res.json();
-                        if (!res.ok) return alert(data.error || 'ลบเวลาออกล้มเหลว');
-                        fetchOtDepartTimes(selectedShiftId);
-                      }}
-                      style={styles.deleteButton}
-                    >ลบ</button>
+                    {editingDepartTime?.id === t.id ? (
+                      <div style={{ display:'flex', gap:8 }}>
+                        <button
+                          onClick={async ()=>{
+                            const token = localStorage.getItem('token');
+                            const body = { id: t.id, time: editingDepartTime.time, shift_id: t.shift_id };
+                            const res = await fetch('/api/ot/depart-times', { method: 'PUT', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+                            const data = await res.json();
+                            if (!res.ok) return alert(data.error || 'อัปเดตเวลาออกล้มเหลว');
+                            setEditingDepartTime(null);
+                            fetchOtDepartTimes(selectedShiftId);
+                          }}
+                          style={styles.confirmButton}
+                        >บันทึก</button>
+                        <button onClick={()=> setEditingDepartTime(null)} style={styles.cancelButton}>ยกเลิก</button>
+                      </div>
+                    ) : (
+                      <div style={{ display:'flex', gap:8 }}>
+                        <button
+                          onClick={()=> setEditingDepartTime({ id: t.id, time: (typeof t.time === 'string' && t.time.length>=5) ? t.time.slice(0,5) : t.time })}
+                          style={{ ...styles.confirmButton, backgroundColor:'#8e44ad' }}
+                        >แก้ไข</button>
+                        <button
+                          onClick={async ()=>{
+                            if (!confirm('ลบเวลาออกนี้?')) return;
+                            const token = localStorage.getItem('token');
+                            const res = await fetch(`/api/ot/depart-times?id=${t.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                            const data = await res.json();
+                            if (!res.ok) return alert(data.error || 'ลบเวลาออกล้มเหลว');
+                            fetchOtDepartTimes(selectedShiftId);
+                          }}
+                          style={styles.deleteButton}
+                        >ลบ</button>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {otDepartTimes.filter(t=>!selectedShiftId || t.shift_id === selectedShiftId).length===0 && <div style={{ padding: 12, color:'#7f8c8d' }}>ไม่มีเวลาออก</div>}
