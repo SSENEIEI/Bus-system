@@ -70,7 +70,7 @@ export default function TruckTable() {
     const ct = res.headers.get('content-type') || '';
     let data = null;
     if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
-    setDepartTimes(Array.isArray(data) ? data : []);
+    setDepartTimes(Array.isArray(data) ? data.filter(x => x && x.is_active !== 0) : []);
   };
   useEffect(() => { loadDepartTimes(shiftId); }, [shiftId]);
 
