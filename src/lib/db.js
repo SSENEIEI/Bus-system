@@ -236,10 +236,16 @@ export async function initDatabase(options = {}) {
     shift_id INT NOT NULL,
     time TIME NOT NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deactivated_at DATETIME NULL,
     UNIQUE KEY uniq_shift_time (shift_id, time),
     KEY shift_idx (shift_id)
   ) CHARSET=utf8mb4`);
   await ensureForeignKey('depart_times', 'dt_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+  // Backfill columns for existing databases (TiDB/MySQL support IF NOT EXISTS)
+  await exec(`ALTER TABLE depart_times
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS deactivated_at DATETIME NULL`);
 
   // 4) Routes (สายรถ)
   await exec(`CREATE TABLE IF NOT EXISTS routes (
