@@ -968,7 +968,7 @@ export default function Home() {
     loadRoutes();
     return () => { aborted = true; };
   }, [isLoggedIn, currentPage]);
-  const [uploadModal, setUploadModal] = useState({ open: false, routeKey: null, column: null, file: null });
+  const [uploadModal, setUploadModal] = useState({ open: false, routeKey: null, column: null, file: null, _busy: false });
 
   // Counts and lock state for OT Return
   const [otCounts, setOtCounts] = useState({}); // key `${routeId}:${deptId}` -> number
@@ -1766,10 +1766,12 @@ export default function Home() {
     const lastUpdatedStr = routePdfsUpdatedAt
       ? new Date(routePdfsUpdatedAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
       : '-';
-    const onPickFile = (routeKey, column) => setUploadModal({ open: true, routeKey, column, file: null });
+  const onPickFile = (routeKey, column) => setUploadModal({ open: true, routeKey, column, file: null, _busy: false });
     const onFileChange = (e) => setUploadModal((m) => ({ ...m, file: e.target.files?.[0] || null }));
     const savePdf = async () => {
-      if (!uploadModal.file) return;
+      // prevent double-submit
+      if (!uploadModal.file || uploadModal._busy) return;
+      setUploadModal((m) => ({ ...m, _busy: true }));
       const reader = new FileReader();
       reader.onload = async () => {
         try {
@@ -1779,18 +1781,30 @@ export default function Home() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ routeKey: uploadModal.routeKey, column: uploadModal.column, base64 })
           });
-          const data = await res.json();
-          if (res.ok) {
+          let data = null;
+          const ct = res.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            try { data = await res.json(); } catch {}
+          } else {
+            try { data = { error: await res.text() }; } catch {}
+          }
+          if (res.ok && data?.ok) {
             const k = `${uploadModal.routeKey}-${uploadModal.column}`;
             setRoutePdfs((prev) => ({ ...prev, [k]: data.url }));
             setRoutePdfsUpdatedAt(Date.now());
-            setUploadModal({ open: false, routeKey: null, column: null, file: null });
+            setUploadModal({ open: false, routeKey: null, column: null, file: null, _busy: false });
           } else {
-            alert(data.error || 'อัปโหลดไม่สำเร็จ');
+            alert((data && data.error) || res.statusText || 'อัปโหลดไม่สำเร็จ');
+            setUploadModal((m) => ({ ...m, _busy: false }));
           }
         } catch (err) {
-          alert('เกิดข้อผิดพลาด');
+          alert('เกิดข้อผิดพลาดในการบันทึกไฟล์');
+          setUploadModal((m) => ({ ...m, _busy: false }));
         }
+      };
+      reader.onerror = () => {
+        alert('ไม่สามารถอ่านไฟล์ได้');
+        setUploadModal((m) => ({ ...m, _busy: false }));
       };
       reader.readAsDataURL(uploadModal.file);
     };
