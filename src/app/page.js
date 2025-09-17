@@ -1767,19 +1767,38 @@ export default function Home() {
       ? new Date(routePdfsUpdatedAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
       : '-';
   const onPickFile = (routeKey, column) => setUploadModal({ open: true, routeKey, column, file: null, _busy: false });
-    const onFileChange = (e) => setUploadModal((m) => ({ ...m, file: e.target.files?.[0] || null }));
+    const onFileChange = (e) => {
+      const f = e.target.files?.[0] || null;
+      const MAX_BYTES = 4 * 1024 * 1024; // ~4MB to stay under Vercel function payload limits
+      if (f && f.size > MAX_BYTES) {
+        alert('ไฟล์ใหญ่เกินไป (เกิน 4 MB) — กรุณาลดขนาดก่อนอัปโหลด');
+        setUploadModal((m) => ({ ...m, file: null }));
+        return;
+      }
+      setUploadModal((m) => ({ ...m, file: f }));
+    };
     const savePdf = async () => {
       // prevent double-submit
       if (!uploadModal.file || uploadModal._busy) return;
+      // guard again on size in case input validation was bypassed
+      const MAX_BYTES = 4 * 1024 * 1024;
+      if (uploadModal.file.size > MAX_BYTES) {
+        alert('ไฟล์ใหญ่เกินไป (เกิน 4 MB) — กรุณาลดขนาดก่อนอัปโหลด');
+        return;
+      }
       setUploadModal((m) => ({ ...m, _busy: true }));
       const reader = new FileReader();
       reader.onload = async () => {
         try {
           const base64 = reader.result;
+          // Prefer multipart/form-data to avoid base64 payload inflation on server limits
+          const form = new FormData();
+          form.append('routeKey', uploadModal.routeKey);
+          form.append('column', uploadModal.column);
+          form.append('file', uploadModal.file);
           const res = await fetch('/api/route-pdfs/save', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ routeKey: uploadModal.routeKey, column: uploadModal.column, base64 })
+            body: form
           });
           let data = null;
           const ct = res.headers.get('content-type') || '';

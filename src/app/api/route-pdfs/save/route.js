@@ -10,14 +10,34 @@ export const maxDuration = 60;
 
 export async function POST(request) {
   try {
-    const { routeKey, column, base64 } = await request.json();
-    if (!routeKey || !column || !base64) {
+    const contentType = request.headers.get('content-type') || '';
+    let routeKey = null;
+    let column = null;
+    let buffer = null;
+    if (contentType.includes('multipart/form-data')) {
+      // New path: receive raw file via multipart to avoid base64 overhead
+      const form = await request.formData();
+      routeKey = form.get('routeKey');
+      column = form.get('column');
+      const file = form.get('file');
+      if (file && typeof file.arrayBuffer === 'function') {
+        const ab = await file.arrayBuffer();
+        buffer = Buffer.from(ab);
+      }
+    } else if (contentType.includes('application/json')) {
+      // Backwards compatibility: JSON base64
+      const body = await request.json();
+      routeKey = body?.routeKey;
+      column = body?.column;
+      const base64 = body?.base64;
+      if (base64) {
+        const cleaned = base64.replace(/^data:application\/pdf;?base64,/, "");
+        buffer = Buffer.from(cleaned, "base64");
+      }
+    }
+    if (!routeKey || !column || !buffer) {
       return NextResponse.json({ error: "ข้อมูลไม่ครบ" }, { status: 400 });
     }
-
-    // Only allow pdf
-    const cleaned = base64.replace(/^data:application\/pdf;?base64,/, "");
-    const buffer = Buffer.from(cleaned, "base64");
 
     // Enforce a sensible max size (10 MB) to prevent oversized payloads
     const MAX_BYTES = 10 * 1024 * 1024;
@@ -29,7 +49,7 @@ export async function POST(request) {
     }
 
     const isProd = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-    const filename = `${routeKey}-${column}.pdf`;
+  const filename = `${routeKey}-${column}.pdf`;
 
     if (isProd) {
       // Persist to Vercel Blob in production
