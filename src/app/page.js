@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from 'next/navigation';
 import html2canvas from "html2canvas";
+import { fetchJSON, postJSON, putJSON, deleteJSON } from '@/lib/http';
 import "./globals.css";
 import { formatWelcome } from '@/lib/formatters';
 import { FaBus, FaUtensils, FaFilePdf, FaWallet } from "react-icons/fa";
@@ -624,24 +625,9 @@ export default function Home() {
     e.preventDefault();
     if (!routeForm.name.trim()) return;
     const doSave = async () => {
-      const token = localStorage.getItem('token');
-      if (routeAction === 'add') {
-        const res = await fetch('/api/ot/routes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ name: routeForm.name.trim(), vendor: routeForm.vendor.trim() || null, display_order: 0 })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'บันทึกสายรถล้มเหลว');
-      } else {
-        const res = await fetch('/api/ot/routes', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ id: routeForm.id, name: routeForm.name.trim(), vendor: routeForm.vendor.trim() || null, display_order: 0 })
-        });
-        const data = await res.json();
-  if (!res.ok) throw new Error((data && data.error) || 'แก้ไขสายรถล้มเหลว');
-      }
+      const payload = { id: routeForm.id, name: routeForm.name.trim(), vendor: routeForm.vendor.trim() || null, display_order: 0 };
+      if (routeAction === 'add') await postJSON('/api/ot/routes', { name: payload.name, vendor: payload.vendor, display_order: 0 });
+      else await putJSON('/api/ot/routes', payload);
       await fetchOtRoutes();
       setShowRouteModal(false);
     };
@@ -650,10 +636,7 @@ export default function Home() {
   const handleRouteDelete = (id) => {
     if (!confirm('ต้องการลบสายรถนี้หรือไม่?')) return;
     const doDel = async () => {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ot/routes?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-  if (!res.ok) throw new Error((data && data.error) || 'ลบสายรถล้มเหลว');
+      await deleteJSON(`/api/ot/routes?id=${id}`);
       await fetchOtRoutes();
     };
     doDel().catch(err => alert(err.message));
@@ -662,15 +645,9 @@ export default function Home() {
   // Load OT master data when navigating to OT Return
   const fetchOtPlants = async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await fetch('/api/ot/plants', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      let data = null; { const ct = res.headers.get('content-type') || ''; if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } } }
-      if (!res.ok) {
-        setOtMastersError(prev => prev || ((data && data.error) || 'โหลดโรงงานล้มเหลว'));
-        setOtPlants([]);
-        return;
-      }
-      setOtPlants(Array.isArray(data) ? data : []);
+      const data = await fetchJSON('/api/ot/plants');
+      if (!Array.isArray(data)) throw new Error('โหลดโรงงานล้มเหลว');
+      setOtPlants(data);
     } catch (err) {
       setOtMastersError(prev => prev || (err?.message || 'โหลดโรงงานล้มเหลว'));
       setOtPlants([]);
@@ -678,15 +655,9 @@ export default function Home() {
   };
   const fetchOtDepartments = async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await fetch('/api/ot/departments', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      let data = null; { const ct = res.headers.get('content-type') || ''; if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } } }
-      if (!res.ok) {
-        setOtMastersError(prev => prev || ((data && data.error) || 'โหลดแผนกล้มเหลว'));
-        setOtDepartmentsApi([]);
-        return;
-      }
-      setOtDepartmentsApi(Array.isArray(data) ? data : []);
+      const data = await fetchJSON('/api/ot/departments');
+      if (!Array.isArray(data)) throw new Error('โหลดแผนกล้มเหลว');
+      setOtDepartmentsApi(data);
     } catch (err) {
       setOtMastersError(prev => prev || (err?.message || 'โหลดแผนกล้มเหลว'));
       setOtDepartmentsApi([]);
@@ -694,14 +665,7 @@ export default function Home() {
   };
   const fetchOtShifts = async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await fetch('/api/ot/shifts', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      let data = null; { const ct = res.headers.get('content-type') || ''; if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } } }
-      if (!res.ok) {
-        setOtMastersError(prev => prev || ((data && data.error) || 'โหลดกะล้มเหลว'));
-        setOtShifts([]);
-        return;
-      }
+      const data = await fetchJSON('/api/ot/shifts');
       const rows = (Array.isArray(data) ? data : []).filter(s => s.is_active !== 0);
       setOtShifts(rows);
       // initialize selectedShiftId if empty (fixes initial depart-time dropdown being empty)
@@ -713,15 +677,8 @@ export default function Home() {
   };
   const fetchOtDepartTimes = async (shiftId = null) => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const url = shiftId ? `/api/ot/depart-times?shiftId=${shiftId}` : '/api/ot/depart-times';
-      const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: 'no-store' });
-      let data = null; { const ct = res.headers.get('content-type') || ''; if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } } }
-      if (!res.ok) {
-        setOtMastersError(prev => prev || ((data && data.error) || 'โหลดเวลาออกล้มเหลว'));
-        setOtDepartTimes([]);
-        return;
-      }
+      const data = await fetchJSON(url, {}, { cache: 'no-store' });
       const rowsAll = Array.isArray(data) ? data : [];
       // Hide inactive (soft-deleted) times from UI
       const rows = rowsAll.filter(r => r && r.is_active !== 0);
@@ -741,14 +698,7 @@ export default function Home() {
   };
   const fetchOtRoutes = async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await fetch('/api/ot/routes', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      let data = null; { const ct = res.headers.get('content-type') || ''; if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } } }
-      if (!res.ok) {
-        setOtMastersError(prev => prev || ((data && data.error) || 'โหลดสายรถล้มเหลว'));
-        setOtRoutesApi([]);
-        return;
-      }
+      const data = await fetchJSON('/api/ot/routes');
       setOtRoutesApi(Array.isArray(data) ? data : []);
     } catch (err) {
       setOtMastersError(prev => prev || (err?.message || 'โหลดสายรถล้มเหลว'));
@@ -819,28 +769,8 @@ export default function Home() {
     if (!plant_id || !name.trim()) { alert('กรุณาเลือกโรงงานและกรอกชื่อแผนก'); return; }
     const normalizedName = name.trim().toUpperCase();
     const doSave = async () => {
-      const token = localStorage.getItem('token');
-      if (deptAction === 'add') {
-        const res = await fetch('/api/ot/departments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ plant_id, name: normalizedName || null })
-        });
-        let data = null;
-        const ct = res.headers.get('content-type') || '';
-        if (ct.includes('application/json')) { data = await res.json(); }
-        if (!res.ok) throw new Error((data && data.error) || 'เพิ่มแผนกล้มเหลว');
-      } else {
-        const res = await fetch('/api/ot/departments', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ id: deptForm.id, plant_id, name: normalizedName || null })
-        });
-        let data = null;
-        const ct = res.headers.get('content-type') || '';
-        if (ct.includes('application/json')) { data = await res.json(); }
-        if (!res.ok) throw new Error((data && data.error) || 'แก้ไขแผนกล้มเหลว');
-      }
+      if (deptAction === 'add') await postJSON('/api/ot/departments', { plant_id, name: normalizedName || null });
+      else await putJSON('/api/ot/departments', { id: deptForm.id, plant_id, name: normalizedName || null });
       await fetchOtDepartments();
       setShowDeptModal(false);
     };
@@ -851,12 +781,8 @@ export default function Home() {
     const text = (newPlantText || '').trim();
     if (!text) { alert('กรุณากรอกชื่อ/รหัสโรงงาน'); return; }
     try {
-      const token = localStorage.getItem('token');
       const c = text.toUpperCase();
-      const res = await fetch('/api/ot/plants', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ code: c, name: c }) });
-      const ct = res.headers.get('content-type') || '';
-      const data = ct.includes('application/json') ? await res.json() : null;
-      if (!res.ok) throw new Error((data && data.error) || 'เพิ่มโรงงานล้มเหลว');
+      await postJSON('/api/ot/plants', { code: c, name: c });
       setAddingPlant(false);
       setNewPlantText('');
       await fetchOtPlants();
@@ -866,11 +792,7 @@ export default function Home() {
   const deletePlantInline = async (id, code) => {
     if (!confirm(`ลบโรงงาน ${code}? การลบนี้จะมีผลกับทุกตาราง (ข้อมูลแผนก/ยอดที่เกี่ยวข้องจะถูกลบด้วย)`)) return;
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ot/plants?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-      const ct = res.headers.get('content-type') || '';
-      const data = ct.includes('application/json') ? await res.json() : null;
-      if (!res.ok) throw new Error((data && data.error) || 'ลบโรงงานล้มเหลว');
+      await deleteJSON(`/api/ot/plants?id=${id}`);
       await fetchOtPlants();
       await fetchOtDepartments();
     } catch (e) { alert(e.message); }
@@ -878,12 +800,7 @@ export default function Home() {
   const deleteDept = (id) => {
     if (!confirm('ต้องการลบแผนกนี้หรือไม่?')) return;
     const doDel = async () => {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ot/departments?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-      let data = null;
-      const ct = res.headers.get('content-type') || '';
-      if (ct.includes('application/json')) { data = await res.json(); }
-      if (!res.ok) throw new Error((data && data.error) || 'ลบแผนกล้มเหลว');
+      await deleteJSON(`/api/ot/departments?id=${id}`);
       await fetchOtDepartments();
     };
     doDel().catch(err => alert(err.message));
@@ -930,9 +847,8 @@ export default function Home() {
     const load = async () => {
       try {
         setIsLoadingRoutePdfs(true);
-        const res = await fetch('/api/route-pdfs/list', { cache: 'no-store' });
-        if (!res.ok) throw new Error('load failed');
-        const data = await res.json();
+  const data = await fetchJSON('/api/route-pdfs/list', {}, { cache: 'no-store' });
+  if (!data) throw new Error('load failed');
         if (aborted) return;
         setRoutePdfs(data.map || {});
         setRoutePdfsUpdatedAt(data.lastUpdated || null);
@@ -952,8 +868,7 @@ export default function Home() {
     let aborted = false;
     const loadRoutes = async () => {
       try {
-        const res = await fetch('/api/ot/routes', { cache: 'no-store' });
-        const rows = await res.json();
+  const rows = await fetchJSON('/api/ot/routes', {}, { cache: 'no-store' });
         if (aborted) return;
         const list = (Array.isArray(rows) ? rows : []).map(r => ({
           id: r.id,
@@ -1017,11 +932,9 @@ export default function Home() {
   const formatTime = (t) => (typeof t === 'string' && t.length >= 5) ? t.slice(0,5) : t;
   const loadOtCounts = async () => {
     if (!otDate || !selectedShiftId || !selectedDepartTimeId) return;
-    const token = localStorage.getItem('token');
     const params = new URLSearchParams({ date: otDate, shiftId: String(selectedShiftId), departTimeId: String(selectedDepartTimeId) });
-    const res = await fetch(`/api/ot/counts?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    if (!res.ok) { alert(data.error || 'โหลดจำนวนล้มเหลว'); return; }
+    const data = await fetchJSON(`/api/ot/counts?${params.toString()}`);
+    if (!Array.isArray(data)) { alert('โหลดจำนวนล้มเหลว'); return; }
     const map = {};
     (Array.isArray(data) ? data : []).forEach(row => {
       map[countsKey(row.route_id, row.department_id)] = row.count || 0;
@@ -1039,26 +952,20 @@ export default function Home() {
       depart_time_id: selectedDepartTimeId,
       count: Math.max(0, parseInt(value) || 0),
     };
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/ot/counts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-    const data = await res.json();
-    if (!res.ok) alert(data.error || 'บันทึกจำนวนล้มเหลว');
+    try { await postJSON('/api/ot/counts', payload); } catch { alert('บันทึกจำนวนล้มเหลว'); }
   };
   const loadOtLock = async () => {
     if (!otDate) return;
-    const token = localStorage.getItem('token');
     // Day-level (legacy)
     try {
-      const res = await fetch(`/api/ot/locks?date=${otDate}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (res.ok) setOtLockInfo(data);
+      const data = await fetchJSON(`/api/ot/locks?date=${otDate}`);
+      if (data) setOtLockInfo(data);
     } catch {}
     // Time-slot global lock
     if (selectedShiftId && selectedDepartTimeId) {
       try {
-        const res2 = await fetch(`/api/ot/locks?date=${otDate}&shiftId=${selectedShiftId}&departTimeId=${selectedDepartTimeId}`, { headers: { Authorization: `Bearer ${token}` } });
-        const data2 = await res2.json();
-        if (res2.ok) setOtTimeLock(data2); else setOtTimeLock({ is_locked: 0 });
+        const data2 = await fetchJSON(`/api/ot/locks?date=${otDate}&shiftId=${selectedShiftId}&departTimeId=${selectedDepartTimeId}`);
+        if (data2) setOtTimeLock(data2); else setOtTimeLock({ is_locked: 0 });
       } catch { setOtTimeLock({ is_locked: 0 }); }
     } else {
       setOtTimeLock({ is_locked: 0 });
@@ -1068,9 +975,8 @@ export default function Home() {
       if (selectedShiftId && selectedDepartTimeId) {
         const deptIds = (Array.isArray(otDepartmentsApi) ? otDepartmentsApi.map(d=>d.id) : []);
         const pairs = await Promise.all(deptIds.map(async (id) => {
-          const res = await fetch(`/api/ot/locks?date=${otDate}&departmentId=${id}&shiftId=${selectedShiftId}&departTimeId=${selectedDepartTimeId}`, { headers: { Authorization: `Bearer ${token}` } });
-          const data = await res.json();
-          return [id, !!(res.ok && data?.is_locked)];
+          const data = await fetchJSON(`/api/ot/locks?date=${otDate}&departmentId=${id}&shiftId=${selectedShiftId}&departTimeId=${selectedDepartTimeId}`);
+          return [id, !!(data?.is_locked)];
         }));
         const map = {}; pairs.forEach(([id, v]) => { map[id] = v; });
         setOtDeptTimeLocks(map);
@@ -1082,19 +988,16 @@ export default function Home() {
     }
   };
   const toggleOtLock = async (forceLocked) => {
-    const token = localStorage.getItem('token');
     if (!selectedShiftId || !selectedDepartTimeId) return alert('กรุณาเลือกกะและเวลา');
     const next = typeof forceLocked === 'boolean' ? (forceLocked ? 1 : 0) : (otTimeLock?.is_locked ? 0 : 1);
     // optimistic update for current time slot
     setOtTimeLock(prev => ({ ...(prev||{}), the_date: otDate, shift_id: selectedShiftId, depart_time_id: selectedDepartTimeId, is_locked: next }));
-    const res = await fetch('/api/ot/locks', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ the_date: otDate, is_locked: next, shift_id: selectedShiftId, depart_time_id: selectedDepartTimeId }) });
-    if (!res.ok) {
-      const data = await res.json();
-      alert(data.error || 'สลับล็อคล้มเหลว');
-      // revert if failed
-      setOtTimeLock(prev => ({ ...(prev||{}), the_date: otDate, shift_id: selectedShiftId, depart_time_id: selectedDepartTimeId, is_locked: next ? 0 : 1 }));
-    } else {
+    try {
+      await postJSON('/api/ot/locks', { the_date: otDate, is_locked: next, shift_id: selectedShiftId, depart_time_id: selectedDepartTimeId });
       await loadOtLock();
+    } catch (e) {
+      alert('สลับล็อคล้มเหลว');
+      setOtTimeLock(prev => ({ ...(prev||{}), the_date: otDate, shift_id: selectedShiftId, depart_time_id: selectedDepartTimeId, is_locked: next ? 0 : 1 }));
     }
   };
   const toggleMyDeptLock = async (forceLocked) => {
@@ -1102,7 +1005,6 @@ export default function Home() {
       ? user.department_ids
       : (user?.department_id ? [user.department_id] : []);
     if (!myDeptIds.length) return alert('บัญชีของคุณยังไม่ได้ระบุแผนก');
-    const token = localStorage.getItem('token');
     if (!selectedShiftId || !selectedDepartTimeId) return alert('กรุณาเลือกกะและเวลา');
     // Decide target state using current time-slot locks
     const anyUnlocked = myDeptIds.some(id => !otDeptTimeLocks[id]);
@@ -1115,12 +1017,12 @@ export default function Home() {
     });
     try {
       const results = await Promise.all(myDeptIds.map(async (id) => {
-        const res = await fetch('/api/ot/locks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ the_date: otDate, is_locked: next, department_id: id, shift_id: selectedShiftId, depart_time_id: selectedDepartTimeId })
-        });
-        return res.ok ? null : (await res.json())?.error || 'error';
+        try {
+          await postJSON('/api/ot/locks', { the_date: otDate, is_locked: next, department_id: id, shift_id: selectedShiftId, depart_time_id: selectedDepartTimeId });
+          return null;
+        } catch (e) {
+          return e?.message || 'error';
+        }
       }));
       const firstErr = results.find(Boolean);
       if (firstErr) alert(firstErr || 'สลับล็อคแผนกล้มเหลว');
@@ -1150,27 +1052,18 @@ export default function Home() {
     try {
       setLoadingLocations(true);
       setLocationError(null);
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/locations", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setLocations(Array.isArray(data) ? data : []);
-        // Adjust register form default if current value not in list
-        if (
-          Array.isArray(data) &&
-          data.length > 0 &&
-          !data.some((l) => l.name === registerForm.department)
-        ) {
+      const data = await fetchJSON('/api/locations');
+      if (Array.isArray(data)) {
+        setLocations(data);
+        if (data.length > 0 && !data.some((l) => l.name === registerForm.department)) {
           setRegisterForm((prev) => ({ ...prev, department: data[0].name }));
         }
       } else {
-        setLocationError(data.error || "โหลด location ไม่สำเร็จ");
+        setLocationError('โหลด location ไม่สำเร็จ');
       }
     } catch (err) {
-      console.error("Fetch locations error", err);
-      setLocationError("เกิดข้อผิดพลาด");
+      console.error('Fetch locations error', err);
+      setLocationError(err?.message || 'เกิดข้อผิดพลาด');
     } finally {
       setLoadingLocations(false);
     }
@@ -1180,43 +1073,21 @@ export default function Home() {
     e.preventDefault();
     if (!newLocation.trim()) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/locations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: newLocation.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setNewLocation("");
-        fetchLocations();
-      } else alert(data.error);
+      await postJSON('/api/locations', { name: newLocation.trim() });
+      setNewLocation("");
+      fetchLocations();
     } catch (err) {
-      alert("เกิดข้อผิดพลาด");
+      alert(err?.message || "เกิดข้อผิดพลาด");
     }
   };
 
   const handleDeleteLocation = async (id, name) => {
     if (!confirm(`ลบ location "${name}" ?`)) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/locations", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ id }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        fetchLocations();
-      } else alert(data.error);
+      await deleteJSON('/api/locations', { id });
+      fetchLocations();
     } catch (err) {
-      alert("เกิดข้อผิดพลาด");
+      alert(err?.message || "เกิดข้อผิดพลาด");
     }
   };
 
@@ -1225,15 +1096,11 @@ export default function Home() {
     try {
       setUserLoading(true);
       setUserError(null);
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok) setUsersList(Array.isArray(data) ? data : []);
-      else setUserError(data.error || "โหลดผู้ใช้ล้มเหลว");
+      const data = await fetchJSON('/api/users');
+      if (Array.isArray(data)) setUsersList(data);
+      else setUserError('โหลดผู้ใช้ล้มเหลว');
     } catch (e) {
-      setUserError("เกิดข้อผิดพลาด");
+      setUserError(e?.message || "เกิดข้อผิดพลาด");
     } finally {
       setUserLoading(false);
     }
@@ -1250,47 +1117,30 @@ export default function Home() {
     e.preventDefault();
     if (!editUser) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/users", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          id: editUser.id,
-          password: editPassword || undefined,
-          department: editDepartment,
-          plant_id: editUser.plant_id || null,
-          department_id: (editDeptIds && editDeptIds.length ? editDeptIds[0] : (editUser.department_id || null)),
-          department_ids: editDeptIds,
-          // roles unchanged
-        })
+      const data = await putJSON('/api/users', {
+        id: editUser.id,
+        password: editPassword || undefined,
+        department: editDepartment,
+        plant_id: editUser.plant_id || null,
+        department_id: (editDeptIds && editDeptIds.length ? editDeptIds[0] : (editUser.department_id || null)),
+        department_ids: editDeptIds,
       });
-      const data = await res.json();
-      if (res.ok) {
-        await loadUsers();
-        setEditUser(null);
-        alert(data.message);
-      } else alert(data.error);
+      await loadUsers();
+      setEditUser(null);
+      alert(data?.message || 'บันทึกสำเร็จ');
     } catch (err) {
-      alert("เกิดข้อผิดพลาด");
+      alert(err?.message || "เกิดข้อผิดพลาด");
     }
   };
 
   const deleteUser = async (u) => {
     if (!confirm(`ลบผู้ใช้ ${u.username}?`)) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/users", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id: u.id })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        await loadUsers();
-        alert(data.message);
-      } else alert(data.error);
+      const data = await deleteJSON('/api/users', { id: u.id });
+      await loadUsers();
+      alert(data?.message || 'ลบสำเร็จ');
     } catch (err) {
-      alert("เกิดข้อผิดพลาด");
+      alert(err?.message || "เกิดข้อผิดพลาด");
     }
   };
 
@@ -1308,25 +1158,15 @@ export default function Home() {
   const handleProductSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
-      let method = productAction === "edit" ? "PUT" : "POST";
-      const res = await fetch("/api/products", {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(productForm),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message);
-        setShowProductModal(false);
-        loadProducts();
-      } else alert(data.error);
+      const data = productAction === 'edit'
+        ? await putJSON('/api/products', productForm)
+        : await postJSON('/api/products', productForm);
+      alert(data?.message || 'บันทึกสำเร็จ');
+      setShowProductModal(false);
+      loadProducts();
     } catch (error) {
       console.error(error);
-      alert("เกิดข้อผิดพลาด");
+      alert(error?.message || "เกิดข้อผิดพลาด");
     }
   };
 
@@ -1334,23 +1174,12 @@ export default function Home() {
   const handleProductDelete = async (id) => {
     if (!confirm("ต้องการลบสินค้านี้หรือไม่?")) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/products", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ id }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message);
-        loadProducts();
-      } else alert(data.error);
+      const data = await deleteJSON('/api/products', { id });
+      alert(data?.message || 'ลบสำเร็จ');
+      loadProducts();
     } catch (error) {
       console.error(error);
-      alert("เกิดข้อผิดพลาด");
+      alert(error?.message || "เกิดข้อผิดพลาด");
     }
   };
 
@@ -1399,17 +1228,8 @@ export default function Home() {
 
   const loadProducts = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch("/api/products", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-      setProducts(Array.isArray(data) ? data : data.products || []);
+      const data = await fetchJSON('/api/products');
+      setProducts(Array.isArray(data) ? data : (data?.products || []));
     } catch (error) {
       console.error("Error loading products:", error);
       setProducts([]);
@@ -1418,16 +1238,7 @@ export default function Home() {
 
   const loadBookings = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch(`/api/bookings?date=${selectedDate}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
+      const data = await fetchJSON(`/api/bookings?date=${selectedDate}`);
       setBookings(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading bookings:", error);
@@ -1437,14 +1248,8 @@ export default function Home() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginForm),
-      });
-      const data = await response.json();
-
-      if (response.ok) {
+      const data = await postJSON('/api/auth/login', loginForm);
+      if (data && data.token && data.user) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         setUser(data.user);
@@ -1457,29 +1262,23 @@ export default function Home() {
         fetchOtPlants();
         fetchOtDepartments();
         alert("เข้าสู่ระบบสำเร็จ");
-      } else alert(data.error);
+      } else alert((data && data.error) || 'เข้าสู่ระบบล้มเหลว');
     } catch (error) {
-      alert("เกิดข้อผิดพลาด");
+      alert(error?.message || "เกิดข้อผิดพลาด");
     }
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(registerForm),
-      });
-      const data = await response.json();
-
-      if (response.ok) {
+      const data = await postJSON('/api/auth/register', registerForm);
+      if (data && !data.error) {
         alert("สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ");
         setCurrentPage("login");
         setRegisterForm({ username: "", password: "", department: "AC" });
-      } else alert(data.error);
+      } else alert((data && data.error) || 'สมัครสมาชิกล้มเหลว');
     } catch (error) {
-      alert("เกิดข้อผิดพลาด");
+      alert(error?.message || "เกิดข้อผิดพลาด");
     }
   };
 
@@ -1521,7 +1320,6 @@ export default function Home() {
   const handleBooking = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
       const available = getAvailablePercentage(
         selectedTruck,
         bookingForm.productId
@@ -1530,21 +1328,8 @@ export default function Home() {
         alert(`เปอร์เซ็นต์จองเกินที่ว่าง! เหลือ ${available}%`);
         return;
       }
-
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...bookingForm,
-          truckNumber: selectedTruck,
-        }),
-      });
-      const data = await response.json();
-
-      if (response.ok) {
+      const data = await postJSON('/api/bookings', { ...bookingForm, truckNumber: selectedTruck });
+      if (data && !data.error) {
         alert("จองสำเร็จ");
         setShowBookingForm(false);
         loadBookings();
@@ -1554,9 +1339,9 @@ export default function Home() {
           percentage: 50,
           bookingDate: new Date().toISOString().split("T")[0],
         });
-      } else alert(data.error);
+      } else alert((data && data.error) || 'จองไม่สำเร็จ');
     } catch (error) {
-      alert("เกิดข้อผิดพลาด");
+      alert(error?.message || "เกิดข้อผิดพลาด");
     }
   };
 
@@ -1571,7 +1356,7 @@ export default function Home() {
   const handleSaveAsImage = async () => {
     // Choose capture target by page
     let targetId = "dashboard-content";
-     if (currentPage === "otReturn") targetId = "ot-return-content";
+    if (currentPage === "otReturn") targetId = "ot-return-capture"; // capture only controls+table
     else if (currentPage === "routeCheck") targetId = "route-content";
 
     const element = document.getElementById(targetId);
@@ -1579,7 +1364,16 @@ export default function Home() {
       alert("ไม่พบพื้นที่สำหรับบันทึกรูปภาพ");
       return;
     }
-    const canvas = await html2canvas(element, { scale: 2 });
+    // Night shift black background for OT Return snapshot
+    let backgroundColor = '#ffffff';
+    if (currentPage === 'otReturn') {
+      try {
+        const s = otShifts.find(x => x.id === selectedShiftId);
+        const isNight = /กลางคืน/i.test(String(s?.name_th||'')) || /night/i.test(String(s?.name_en||''));
+        if (isNight) backgroundColor = '#000000';
+      } catch {}
+    }
+    const canvas = await html2canvas(element, { scale: 2, backgroundColor });
     const image = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = image;
@@ -1796,24 +1590,30 @@ export default function Home() {
           form.append('routeKey', uploadModal.routeKey);
           form.append('column', uploadModal.column);
           form.append('file', uploadModal.file);
-          const res = await fetch('/api/route-pdfs/save', {
-            method: 'POST',
-            body: form
-          });
+          // Use native fetch for multipart but add a timeout via AbortController
+          const controller = new AbortController();
+          const tid = setTimeout(() => controller.abort(), 15000);
           let data = null;
-          const ct = res.headers.get('content-type') || '';
-          if (ct.includes('application/json')) {
-            try { data = await res.json(); } catch {}
-          } else {
-            try { data = { error: await res.text() }; } catch {}
+          let ok = false;
+          try {
+            const res = await fetch('/api/route-pdfs/save', { method: 'POST', body: form, signal: controller.signal });
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              try { data = await res.json(); } catch {}
+            } else {
+              try { data = { error: await res.text() }; } catch {}
+            }
+            ok = res.ok;
+          } finally {
+            clearTimeout(tid);
           }
-          if (res.ok && data?.ok) {
+          if (ok && data?.ok) {
             const k = `${uploadModal.routeKey}-${uploadModal.column}`;
             setRoutePdfs((prev) => ({ ...prev, [k]: data.url }));
             setRoutePdfsUpdatedAt(Date.now());
             setUploadModal({ open: false, routeKey: null, column: null, file: null, _busy: false });
           } else {
-            alert((data && data.error) || res.statusText || 'อัปโหลดไม่สำเร็จ');
+            alert((data && data.error) || 'อัปโหลดไม่สำเร็จ');
             setUploadModal((m) => ({ ...m, _busy: false }));
           }
         } catch (err) {
@@ -1904,7 +1704,7 @@ export default function Home() {
   if (isLoggedIn && currentPage === "otReturn") {
     const todayStr = new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
     return (
-      <div id="ot-return-content" style={{
+  <div id="ot-return-content" style={{
         ...styles.otReturnWrapper,
         ...(() => {
           try {
@@ -1930,9 +1730,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Panel: ตัวเลือกวัน/กะ/เวลารถออก + ปุ่มย่อย */}
-          <div style={{ ...styles.panelCard, paddingTop: 16 }}>
-            <div style={styles.otReturnControls}>
+          {/* Capture Wrapper: Controls + Table */}
+          <div id="ot-return-capture">
+            {/* Panel: ตัวเลือกวัน/กะ/เวลารถออก + ปุ่มย่อย */}
+            <div style={{ ...styles.panelCard, paddingTop: 16 }}>
+              <div style={styles.otReturnControls}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={styles.otReturnLabel}>เลือกวันที่:</span>
               <input type="date" value={otDate} onChange={(e)=>setOtDate(e.target.value)} style={styles.otReturnInput} />
@@ -1963,13 +1765,13 @@ export default function Home() {
                     <button style={{ ...styles.otReturnAction, background: '#8e44ad' }} onClick={()=>setShowTimeModal(true)}>แก้ไขเวลารถ</button>
                   </>
                 )}
-              <button style={styles.otReturnAction} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
+                <button style={styles.otReturnAction} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
+              </div>
+              </div>
             </div>
-            </div>
-          </div>
 
-          {/* Panel: ตารางสรุปจำนวนคนต่อสายรถ/แผนก */}
-          <div style={{ ...styles.panelCardTight }}>
+            {/* Panel: ตารางสรุปจำนวนคนต่อสายรถ/แผนก */}
+            <div style={{ ...styles.panelCardTight }}>
             <div style={{
               ...styles.otReturnTableWrap,
               ...(otTimeLock?.is_locked
@@ -2032,8 +1834,8 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
-            {/* Footer actions integrated into the same panel */}
-            <div style={{ ...styles.otReturnFooter, padding: '10px 16px 16px', marginTop: 8 }}>
+              {/* Footer actions integrated into the same panel */}
+              <div style={{ ...styles.otReturnFooter, padding: '10px 16px 16px', marginTop: 8 }}>
               {user?.is_super_admin ? (
                 <>
                   <button style={{ ...styles.confirmButton, padding: '12px 18px' }} onClick={()=>toggleOtLock(true)}>ยืนยันการจอง</button>
@@ -2045,6 +1847,7 @@ export default function Home() {
                   <button style={{ ...styles.cancelButton, padding: '12px 18px' }} onClick={()=>toggleMyDeptLock(false)}>ยกเลิก</button>
                 </>
               ) : null}
+              </div>
             </div>
           </div>
 
@@ -2304,12 +2107,13 @@ export default function Home() {
                 <button
                   onClick={async ()=>{
                     if (!newShiftTh.trim() && !newShiftEn.trim()) return;
-                    const token = localStorage.getItem('token');
-                    const res = await fetch('/api/ot/shifts', { method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name_th: newShiftTh.trim() || null, name_en: newShiftEn.trim() || null }) });
-                    const data = await res.json();
-                    if (!res.ok) return alert(data.error || 'เพิ่มกะล้มเหลว');
-                    setNewShiftTh(''); setNewShiftEn('');
-                    fetchOtShifts();
+                    try {
+                      await postJSON('/api/ot/shifts', { name_th: newShiftTh.trim() || null, name_en: newShiftEn.trim() || null });
+                      setNewShiftTh(''); setNewShiftEn('');
+                      fetchOtShifts();
+                    } catch (e) {
+                      alert(e?.message || 'เพิ่มกะล้มเหลว');
+                    }
                   }}
                   style={styles.confirmButton}
                 >เพิ่ม</button>
@@ -2324,11 +2128,12 @@ export default function Home() {
                     <button
                       onClick={async ()=>{
                         if (!confirm('ลบกะนี้?')) return;
-                        const token = localStorage.getItem('token');
-                        const res = await fetch(`/api/ot/shifts?id=${s.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-                        const data = await res.json();
-                        if (!res.ok) return alert(data.error || 'ลบกะล้มเหลว');
-                        fetchOtShifts();
+                        try {
+                          await deleteJSON(`/api/ot/shifts?id=${s.id}`);
+                          fetchOtShifts();
+                        } catch (e) {
+                          alert(e?.message || 'ลบกะล้มเหลว');
+                        }
                       }}
                       style={styles.deleteButton}
                     >ลบ</button>
@@ -2362,22 +2167,14 @@ export default function Home() {
                 <button
                   onClick={async ()=>{
                     if (!selectedShiftId || !newDepartTime) return;
-                    const token = localStorage.getItem('token');
-                    const res = await fetch('/api/ot/depart-times', { method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ shift_id: selectedShiftId, time: newDepartTime, is_entry: newDepartIsEntry ? 1 : 0 }) });
-                    const ct = res.headers.get('content-type') || '';
-                    const data = ct.includes('application/json') ? await res.json() : null;
-                    if (!res.ok) {
-                      if (res.status === 401 || res.status === 403) {
-                        alert('Unauthorized: กรุณาเข้าสู่ระบบใหม่');
-                        try { localStorage.removeItem('token'); localStorage.removeItem('user'); } catch {}
-                        setIsLoggedIn(false); setCurrentPage('login');
-                        return;
-                      }
-                      return alert((data && data.error) || 'เพิ่มเวลาออกล้มเหลว');
+                    try {
+                      await postJSON('/api/ot/depart-times', { shift_id: selectedShiftId, time: newDepartTime, is_entry: newDepartIsEntry ? 1 : 0 });
+                      setNewDepartTime('');
+                      setNewDepartIsEntry(0);
+                      fetchOtDepartTimes(selectedShiftId);
+                    } catch (e) {
+                      alert(e?.message || 'เพิ่มเวลาออกล้มเหลว');
                     }
-                    setNewDepartTime('');
-                    setNewDepartIsEntry(0);
-                    fetchOtDepartTimes(selectedShiftId);
                   }}
                   style={styles.confirmButton}
                 >เพิ่ม</button>
@@ -2412,22 +2209,14 @@ export default function Home() {
                       <div style={{ display:'flex', gap:8 }}>
                         <button
                           onClick={async ()=>{
-                            const token = localStorage.getItem('token');
-                            const body = { id: t.id, time: editingDepartTime.time, shift_id: t.shift_id, is_entry: Number(editingDepartTime.is_entry)||0 };
-                            const res = await fetch('/api/ot/depart-times', { method: 'PUT', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-                            const ct = res.headers.get('content-type') || '';
-                            const data = ct.includes('application/json') ? await res.json() : null;
-                            if (!res.ok) {
-                              if (res.status === 401 || res.status === 403) {
-                                alert('Unauthorized: กรุณาเข้าสู่ระบบใหม่');
-                                try { localStorage.removeItem('token'); localStorage.removeItem('user'); } catch {}
-                                setIsLoggedIn(false); setCurrentPage('login');
-                                return;
-                              }
-                              return alert((data && data.error) || 'อัปเดตเวลาออกล้มเหลว');
+                            try {
+                              const body = { id: t.id, time: editingDepartTime.time, shift_id: t.shift_id, is_entry: Number(editingDepartTime.is_entry)||0 };
+                              await putJSON('/api/ot/depart-times', body);
+                              setEditingDepartTime(null);
+                              fetchOtDepartTimes(selectedShiftId);
+                            } catch (e) {
+                              alert(e?.message || 'อัปเดตเวลาออกล้มเหลว');
                             }
-                            setEditingDepartTime(null);
-                            fetchOtDepartTimes(selectedShiftId);
                           }}
                           style={styles.confirmButton}
                         >บันทึก</button>
@@ -2442,20 +2231,12 @@ export default function Home() {
                         <button
                           onClick={async ()=>{
                             if (!confirm('ลบเวลาออก/เข้า นี้?')) return;
-                            const token = localStorage.getItem('token');
-                            const res = await fetch(`/api/ot/depart-times?id=${t.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-                            const ct = res.headers.get('content-type') || '';
-                            const data = ct.includes('application/json') ? await res.json() : null;
-                            if (!res.ok) {
-                              if (res.status === 401 || res.status === 403) {
-                                alert('Unauthorized: กรุณาเข้าสู่ระบบใหม่');
-                                try { localStorage.removeItem('token'); localStorage.removeItem('user'); } catch {}
-                                setIsLoggedIn(false); setCurrentPage('login');
-                                return;
-                              }
-                              return alert((data && data.error) || 'ลบเวลาออก/เข้าล้มเหลว');
+                            try {
+                              await deleteJSON(`/api/ot/depart-times?id=${t.id}`);
+                              fetchOtDepartTimes(selectedShiftId);
+                            } catch (e) {
+                              alert(e?.message || 'ลบเวลาออก/เข้าล้มเหลว');
                             }
-                            fetchOtDepartTimes(selectedShiftId);
                           }}
                           style={styles.deleteButton}
                         >ลบ</button>
@@ -2485,7 +2266,6 @@ export default function Home() {
               <form onSubmit={async (e)=>{
                 e.preventDefault();
                 try {
-                  const token = localStorage.getItem('token');
                   const selectedDeptIds = Array.isArray(newUserDeptIds) ? newUserDeptIds : [];
                   const mainDeptId = selectedDeptIds.length ? selectedDeptIds[0] : (newUser.department_id || null);
                   const payload = {
@@ -2497,15 +2277,13 @@ export default function Home() {
                     is_admin: 1,
                     is_super_admin: 0,
                   };
-                  const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-                  const data = await res.json();
-                  if (!res.ok) return alert(data.error || 'เพิ่มผู้ใช้ล้มเหลว');
+                  await postJSON('/api/users', payload);
                   setNewUser({ username: '', password: '', display_name: '', department: '', plant_id: '', department_id: '' });
                   setNewUserDeptIds([]);
                   await loadUsers();
                   alert('เพิ่มผู้ใช้สำเร็จ');
                 } catch (err) {
-                  alert('เกิดข้อผิดพลาด');
+                  alert(err?.message || 'เกิดข้อผิดพลาด');
                 }
               }} style={{ border: '1px solid #ecf0f1', borderRadius: 8, padding: 12, marginBottom: 12 }}>
                 <h3 style={{ marginTop: 0, fontSize: 16 }}>เพิ่มผู้ใช้ใหม่</h3>
@@ -2851,22 +2629,12 @@ export default function Home() {
                                   if (
                                     confirm("ต้องการยกเลิก booking นี้หรือไม่?")
                                   ) {
-                                    const token = localStorage.getItem("token");
-                                    const res = await fetch(
-                                      `/api/bookings/${b.id}`,
-                                      {
-                                        method: "DELETE",
-                                        headers: {
-                                          Authorization: `Bearer ${token}`,
-                                        },
-                                      }
-                                    );
-                                    const data = await res.json();
-                                    if (res.ok) {
+                                    try {
+                                      await deleteJSON(`/api/bookings/${b.id}`);
                                       alert("ลบ booking สำเร็จ");
                                       loadBookings();
-                                    } else {
-                                      alert(data.error);
+                                    } catch (err) {
+                                      alert(err?.message || 'ลบไม่สำเร็จ');
                                     }
                                   }
                                 }}
@@ -3291,7 +3059,6 @@ export default function Home() {
             <form onSubmit={async (e)=>{
               e.preventDefault();
               try {
-                const token = localStorage.getItem('token');
                 const payload = {
                   username: newUser.username.trim(),
                   password: newUser.password,
@@ -3302,14 +3069,12 @@ export default function Home() {
                   is_admin: 1,
                   is_super_admin: 0,
                 };
-                const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-                const data = await res.json();
-                if (!res.ok) return alert(data.error || 'เพิ่มผู้ใช้ล้มเหลว');
+                await postJSON('/api/users', payload);
                 setNewUser({ username: '', password: '', display_name: '', department: '', plant_id: '', department_id: '' });
                 await loadUsers();
                 alert('เพิ่มผู้ใช้สำเร็จ');
               } catch (err) {
-                alert('เกิดข้อผิดพลาด');
+                alert(err?.message || 'เกิดข้อผิดพลาด');
               }
             }} style={{ border: '1px solid #ecf0f1', borderRadius: 8, padding: 12, marginBottom: 12 }}>
               <h3 style={{ marginTop: 0, fontSize: 16 }}>เพิ่มผู้ใช้ใหม่</h3>

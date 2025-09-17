@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatWelcome } from '@/lib/formatters';
 import html2canvas from "html2canvas";
+import { fetchJSON, postJSON } from '@/lib/http';
 
 function ymd(d){
   // Build YYYY-MM-DD in local time to avoid UTC shift (which caused wrong weekend coloring)
@@ -26,12 +27,10 @@ export default function VendorCostsPage(){
   // Load minimal masters for greeting formatting
   useEffect(()=>{(async()=>{
     try {
-      const hdr = token ? { Authorization:`Bearer ${token}` } : {};
-      const [p, d] = await Promise.all([
-        fetch('/api/ot/plants', { headers: hdr }),
-        fetch('/api/ot/departments', { headers: hdr })
+      const [pr, dr] = await Promise.all([
+        fetchJSON('/api/ot/plants'),
+        fetchJSON('/api/ot/departments')
       ]);
-      const [pr, dr] = await Promise.all([p.json().catch(()=>[]), d.json().catch(()=>[])]);
       setPlants(Array.isArray(pr)?pr:[]);
       setDepartments(Array.isArray(dr)?dr:[]);
     } catch { setPlants([]); setDepartments([]); }
@@ -65,7 +64,7 @@ export default function VendorCostsPage(){
   const tableRef = useRef(null);
 
   // load routes
-  useEffect(()=>{(async()=>{ const res=await fetch('/api/ot/routes'); const r=await res.json(); setRoutes(r||[]); if(r?.length && !selectedRouteId) setSelectedRouteId(r[0].id); })();},[]);
+  useEffect(()=>{(async()=>{ const r = await fetchJSON('/api/ot/routes'); setRoutes(Array.isArray(r)?r:[]); if(Array.isArray(r)&&r.length && !selectedRouteId) setSelectedRouteId(r[0].id); })();},[]);
 
   // build days in range
   const days = useMemo(()=>{ const s=parseDate(startDate), e=parseDate(endDate); const out=[]; for(let d=new Date(s); d<=e; d=addDays(d,1)) out.push(ymd(d)); return out; },[startDate,endDate]);
@@ -74,10 +73,7 @@ export default function VendorCostsPage(){
   useEffect(()=>{(async()=>{
     if(!startDate||!endDate||!selectedRouteId) return;
     const dayList = days;
-    const results = await Promise.all(dayList.map(async (d)=>{
-      const res = await fetch(`/api/vendor/payments?date=${d}`);
-      try { return await res.json(); } catch { return []; }
-    }));
+    const results = await Promise.all(dayList.map(async (d)=> (await fetchJSON(`/api/vendor/payments?date=${d}`)) || []));
     const map={};
     results.forEach((rows, idx)=>{
       const d = dayList[idx];
@@ -87,16 +83,15 @@ export default function VendorCostsPage(){
   })();},[startDate,endDate,selectedRouteId,days.length]);
 
   // lock load for endDate (like OT page)
-  useEffect(()=>{(async()=>{ if(!endDate) return; const res=await fetch(`/api/ot/locks?date=${endDate}`); const data=await res.json(); setLockInfo(data||{the_date:endDate,is_locked:0}); })();},[endDate]);
+  useEffect(()=>{(async()=>{ if(!endDate) return; const data=await fetchJSON(`/api/ot/locks?date=${endDate}`); setLockInfo(data||{the_date:endDate,is_locked:0}); })();},[endDate]);
 
   // load rate (Cost column) from DB via /api/vendor/rates per route (persistent across users)
   useEffect(()=>{(async()=>{
     if(!selectedRouteId) return;
     const defaults = { rate_flat:0, rate_wait:0, rate_ot_normal:0, rate_trip:0, rate_ot_holiday:0, rate_trip_night:0 };
     try {
-      const res = await fetch(`/api/vendor/rates?route_id=${selectedRouteId}`);
-      const data = await res.json();
-      if (res.ok && data && typeof data === 'object') {
+      const data = await fetchJSON(`/api/vendor/rates?route_id=${selectedRouteId}`);
+      if (data && typeof data === 'object') {
         setRates({
           rate_flat: Number(data.rate_flat||0),
           rate_wait: Number(data.rate_wait||0),
@@ -114,10 +109,9 @@ export default function VendorCostsPage(){
   // actions
   function openCell(dateStr){ if(lockInfo?.is_locked && !isAdminga) return; if(isWeekend(dateStr)) return; const route = routes.find(r=>r.id===Number(selectedRouteId)); const row = payments[`${dateStr}|${route?.id}`]||{}; setEdit({ open:true, date:dateStr, route, value:String(row.pay_flat??0) }); }
   async function saveCell(){ if(!edit.open) return; const routeId=edit.route?.id; const val=Math.max(0, Number(edit.value)||0); const body={ the_date: edit.date, route_id: routeId, key:'pay_flat', value: val };
-    const res = await fetch('/api/vendor/payments',{ method:'POST', headers:{'Content-Type':'application/json', ...(token?{Authorization:`Bearer ${token}`}:{}) }, body: JSON.stringify(body)});
-    if(!res.ok){ alert('บันทึกไม่สำเร็จ'); return; }
+    try { await postJSON('/api/vendor/payments', body); } catch { alert('บันทึกไม่สำเร็จ'); return; }
     setPayments(prev=>{ const k = `${edit.date}|${routeId}`; const row = { ...(prev[k]||{}), the_date: edit.date, route_id: routeId, pay_flat: val }; return { ...prev, [k]: row }; }); setEdit({ open:false, date:null, route:null, value:"" }); }
-  async function toggleLock(force){ const next = typeof force==='boolean' ? (force?1:0) : (lockInfo?.is_locked?0:1); setLockInfo(prev=>({...(prev||{}), the_date:endDate, is_locked:next})); const res=await fetch('/api/ot/locks',{method:'POST', headers:{'Content-Type':'application/json', ...(token?{Authorization:`Bearer ${token}`}:{})}, body: JSON.stringify({ the_date:endDate, is_locked:next })}); if(!res.ok) setLockInfo(prev=>({...(prev||{}), is_locked: next?0:1 })); }
+  async function toggleLock(force){ const next = typeof force==='boolean' ? (force?1:0) : (lockInfo?.is_locked?0:1); setLockInfo(prev=>({...(prev||{}), the_date:endDate, is_locked:next})); try { await postJSON('/api/ot/locks', { the_date:endDate, is_locked:next }); } catch { setLockInfo(prev=>({...(prev||{}), is_locked: next?0:1 })); } }
   function logout(){ localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.href='/'; }
   async function saveImage(){ const el = document.getElementById('vendor-costs-card'); if(!el) return; const canvas = await html2canvas(el); const a=document.createElement('a'); a.download=`vendor-costs-${endDate}.png`; a.href=canvas.toDataURL(); a.click(); }
 
@@ -146,15 +140,7 @@ export default function VendorCostsPage(){
     setRates(updated);
     // persist to DB via vendor/rates API (requires admin/super admin)
     try {
-      const res = await fetch('/api/vendor/rates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token?{Authorization:`Bearer ${token}`}:{}) },
-        body: JSON.stringify({ route_id: Number(selectedRouteId), values: updated })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(()=>({}));
-        alert(String(err?.error || 'บันทึกไม่สำเร็จ'));
-      }
+      await postJSON('/api/vendor/rates', { route_id: Number(selectedRouteId), values: updated });
     } catch (e) {
       alert('บันทึกไม่สำเร็จ');
     }

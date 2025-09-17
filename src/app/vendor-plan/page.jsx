@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import html2canvas from "html2canvas";
+import { fetchJSON, postJSON } from '@/lib/http';
 import { formatWelcome } from '@/lib/formatters';
 
 // แผนจัดรถ (สำหรับ Vendor)
@@ -48,88 +49,77 @@ export default function VendorPlanPage() {
 
   // Load master data
   useEffect(() => {
+    let cancelled = false;
     const loadMasters = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const [r, s, p, d] = await Promise.all([
-          fetch("/api/ot/routes"),
-          fetch("/api/ot/shifts", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("/api/ot/plants", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("/api/ot/departments", { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
         const [routesRows, shiftsRows, plantRows, deptRows] = await Promise.all([
-          r.json().catch(() => []),
-          s.json().catch(() => []),
-          p.json().catch(() => []),
-          d.json().catch(() => []),
+          fetchJSON('/api/ot/routes'),
+          fetchJSON('/api/ot/shifts'),
+          fetchJSON('/api/ot/plants'),
+          fetchJSON('/api/ot/departments'),
         ]);
+        if (cancelled) return;
         setRoutes(Array.isArray(routesRows) ? routesRows : []);
         const sh = Array.isArray(shiftsRows) ? shiftsRows : [];
         setShifts(sh);
         setPlants(Array.isArray(plantRows) ? plantRows : []);
         setDepartments(Array.isArray(deptRows) ? deptRows : []);
       } catch (e) {
+        if (cancelled) return;
         setRoutes([]); setShifts([]); setPlants([]); setDepartments([]);
       }
     };
     loadMasters();
+    return () => { cancelled = true; };
   }, []);
 
   // Load depart times for both day and night
   useEffect(() => {
+    let cancelled = false;
     const loadDepartTimes = async () => {
       if (!dayNightShiftIds.day && !dayNightShiftIds.night) return setDepartTimesByShift({});
-      const token = localStorage.getItem("token");
       const acc = {};
       for (const sid of [dayNightShiftIds.day, dayNightShiftIds.night].filter(Boolean)) {
-        try {
-          const res = await fetch(`/api/ot/depart-times?shiftId=${sid}`, { headers: { Authorization: `Bearer ${token}` } });
-          const rows = await res.json().catch(() => []);
-          // Ensure entry times appear on the left of the shift group: sort by is_entry DESC, then time ASC
-          acc[sid] = (Array.isArray(rows) ? rows : []).sort((a, b) => {
-            const ie = (Number(b?.is_entry||0) - Number(a?.is_entry||0));
-            if (ie !== 0) return ie; // entries (1) first
-            return String(a.time).localeCompare(String(b.time));
-          });
-        } catch {
-          acc[sid] = [];
-        }
+        const rows = await fetchJSON(`/api/ot/depart-times?shiftId=${sid}`) || [];
+        acc[sid] = (Array.isArray(rows) ? rows : []).sort((a, b) => {
+          const ie = (Number(b?.is_entry||0) - Number(a?.is_entry||0));
+          if (ie !== 0) return ie; // entries (1) first
+          return String(a.time).localeCompare(String(b.time));
+        });
       }
-      setDepartTimesByShift(acc);
+      if (!cancelled) setDepartTimesByShift(acc);
     };
     loadDepartTimes();
+    return () => { cancelled = true; };
   }, [dayNightShiftIds.day, dayNightShiftIds.night]);
 
   // Load aggregate counts per depart time (sum across plants/departments)
   useEffect(() => {
+    let cancelled = false;
     const loadCounts = async () => {
-      const token = localStorage.getItem("token");
       const acc = {};
       const allDts = [
         ...(departTimesByShift[dayNightShiftIds.day] || []),
         ...(departTimesByShift[dayNightShiftIds.night] || []),
       ];
       for (const dt of allDts) {
-        try {
-          const res = await fetch(`/api/ot/counts?date=${date}&shiftId=${dt.shift_id || dayNightShiftIds.day}&departTimeId=${dt.id}`, { headers: { Authorization: `Bearer ${token}` } });
-          const rows = await res.json().catch(() => []);
-          const map = {}; // { routeId: totalPeople }
-          for (const row of (Array.isArray(rows) ? rows : [])) {
-            const rId = row.route_id; const c = Number(row.count) || 0;
-            map[rId] = (map[rId] || 0) + c; // sum across departments
-          }
-          acc[dt.id] = map;
-        } catch {
-          acc[dt.id] = {};
+        const rows = await fetchJSON(`/api/ot/counts?date=${date}&shiftId=${dt.shift_id || dayNightShiftIds.day}&departTimeId=${dt.id}`) || [];
+        const map = {}; // { routeId: totalPeople }
+        for (const row of (Array.isArray(rows) ? rows : [])) {
+          const rId = row.route_id; const c = Number(row.count) || 0;
+          map[rId] = (map[rId] || 0) + c; // sum across departments
         }
+        acc[dt.id] = map;
       }
-      setCountsByDepartTime(acc);
+      if (!cancelled) setCountsByDepartTime(acc);
     };
     loadCounts();
+    return () => { cancelled = true; };
   }, [date, departTimesByShift, dayNightShiftIds.day, dayNightShiftIds.night]);
 
   // Load car overrides per depart time (manual overrides from ot_car_plan)
   useEffect(() => {
+    let cancelled = false;
     const loadCars = async () => {
       const acc = {};
       const allDts = [
@@ -137,49 +127,51 @@ export default function VendorPlanPage() {
         ...(departTimesByShift[dayNightShiftIds.night] || []),
       ];
       for (const dt of allDts) {
-        try {
-          const res = await fetch(`/api/ot/cars?date=${date}&shiftId=${dt.shift_id || dayNightShiftIds.day}&departTimeId=${dt.id}`);
-          const rows = await res.json().catch(() => []);
-          const map = {};
-          for (const row of (Array.isArray(rows) ? rows : [])) {
-            const rId = row.route_id; const c = Number(row.car_count) || 0;
-            map[rId] = c;
-          }
-          acc[dt.id] = map;
-        } catch {
-          acc[dt.id] = {};
+        const rows = await fetchJSON(`/api/ot/cars?date=${date}&shiftId=${dt.shift_id || dayNightShiftIds.day}&departTimeId=${dt.id}`) || [];
+        const map = {};
+        for (const row of (Array.isArray(rows) ? rows : [])) {
+          const rId = row.route_id; const c = Number(row.car_count) || 0;
+          map[rId] = c;
         }
+        acc[dt.id] = map;
       }
-      setCarPlanByDepartTime(acc);
+      if (!cancelled) setCarPlanByDepartTime(acc);
     };
     loadCars();
+    return () => { cancelled = true; };
   }, [date, departTimesByShift, dayNightShiftIds.day, dayNightShiftIds.night]);
 
   // Load vendor payments for the date
   useEffect(() => {
+    let cancelled = false;
     const loadPayments = async () => {
-      try {
-        const res = await fetch(`/api/vendor/payments?date=${date}`);
-        const rows = await res.json().catch(()=>[]);
-        const map = {};
-        for (const r of (Array.isArray(rows)?rows:[])) {
-          map[r.route_id] = {
-            pay_flat: Number(r.pay_flat)||0,
-            pay_wait: Number(r.pay_wait)||0,
-            pay_ot_normal: Number(r.pay_ot_normal)||0,
-            pay_trip: Number(r.pay_trip)||0,
-            pay_ot_holiday: Number(r.pay_ot_holiday)||0,
-            pay_trip_night: Number(r.pay_trip_night)||0
-          };
-        }
-        setPayments(map);
-      } catch { setPayments({}); }
+      const rows = await fetchJSON(`/api/vendor/payments?date=${date}`) || [];
+      const map = {};
+      for (const r of (Array.isArray(rows)?rows:[])) {
+        map[r.route_id] = {
+          pay_flat: Number(r.pay_flat)||0,
+          pay_wait: Number(r.pay_wait)||0,
+          pay_ot_normal: Number(r.pay_ot_normal)||0,
+          pay_trip: Number(r.pay_trip)||0,
+          pay_ot_holiday: Number(r.pay_ot_holiday)||0,
+          pay_trip_night: Number(r.pay_trip_night)||0
+        };
+      }
+      if (!cancelled) setPayments(map);
     };
     loadPayments();
+    return () => { cancelled = true; };
   }, [date]);
 
   // Load lock for the selected date (shared with other pages)
-  useEffect(()=>{(async()=>{ try { const res=await fetch(`/api/ot/locks?date=${date}`); const data=await res.json(); setLockInfo(data||{ the_date:date, is_locked:0 }); } catch { setLockInfo({ the_date:date, is_locked:0 }); } })();}, [date]);
+  useEffect(()=>{
+    let cancelled = false;
+    (async()=>{
+      const data = await fetchJSON(`/api/ot/locks?date=${date}`);
+      if (!cancelled) setLockInfo(data || { the_date:date, is_locked:0 });
+    })();
+    return () => { cancelled = true; };
+  }, [date]);
 
   // Lock/unlock similar to other pages
   const toggleLock = async (force) => {
@@ -187,9 +179,7 @@ export default function VendorPlanPage() {
     setLockInfo(prev=>({ ...(prev||{}), the_date: date, is_locked: next }));
     if (next) { setEditModal({ open:false, route:null, key:null, value:'' }); }
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/ot/locks', { method:'POST', headers:{ 'Content-Type':'application/json', ...(token?{ Authorization:`Bearer ${token}` }:{}) }, body: JSON.stringify({ the_date: date, is_locked: next }) });
-      if (!res.ok) throw new Error('lock save failed');
+      await postJSON('/api/ot/locks', { the_date: date, is_locked: next });
     } catch {
       // revert on failure
       setLockInfo(prev=>({ ...(prev||{}), is_locked: next?0:1 }));
@@ -204,11 +194,8 @@ export default function VendorPlanPage() {
   const saveEdit = async () => {
     if (!editModal.open || !editModal.route || !editModal.key) return;
     try {
-      const token = localStorage.getItem('token');
       const body = { the_date: date, route_id: editModal.route.id, key: editModal.key, value: Math.max(0, Number(editModal.value)||0) };
-      const res = await fetch('/api/vendor/payments', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify(body) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'บันทึกไม่สำเร็จ');
+      const data = await postJSON('/api/vendor/payments', body);
       setPayments(prev => ({
         ...prev,
         [editModal.route.id]: { ...(prev[editModal.route.id]||{}), [editModal.key]: body.value }
@@ -272,206 +259,209 @@ export default function VendorPlanPage() {
 
   return (
     <div style={styles.wrapper}>
-      <div style={styles.stack} ref={captureRef}>
+      <div style={styles.stack}>
         {/* Panel: Header */}
         <div style={{ ...styles.panelCard, paddingBottom: 16 }}>
           <div style={styles.headerRow}>
-          <div>
-            <h1 style={styles.title}>แผนจัดรถ</h1>
-            <div style={{ color: "#2f3e4f", fontWeight: 600 }}>ยินดีต้อนรับ, {welcomeText}</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ fontSize: 18, color: "#2f3e4f" }}>
-              {new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+            <div>
+              <h1 style={styles.title}>แผนจัดรถ</h1>
+              <div style={{ color:'#2f3e4f', fontWeight:600 }}>ยินดีต้อนรับ, {welcomeText}</div>
             </div>
-            <button onClick={()=>router.push('/')} style={{ ...styles.logoutBtn, background:'#34495e' }}>กลับเมนูหลัก</button>
-            <button onClick={handleLogout} style={styles.logoutBtn}>ออกจากระบบ</button>
-          </div>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <div style={{ fontSize:18, color:'#2f3e4f' }}>
+                {new Date().toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' })}
+              </div>
+              <button onClick={()=>router.push('/')} style={{ ...styles.logoutBtn, background:'#34495e' }}>กลับเมนูหลัก</button>
+              <button onClick={handleLogout} style={styles.logoutBtn}>ออกจากระบบ</button>
+            </div>
           </div>
         </div>
-        {/* Panel: Controls */}
-        <div style={{ ...styles.panelCard, paddingTop: 16 }}>
-          <div style={styles.controls}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={styles.label}>เลือกวันที่:</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={styles.input} />
-          </div>
-          <button style={styles.primaryBtn} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
-          </div>
-        </div>
-        {/* Panel: Table */}
-        <div style={{ ...styles.panelCardTight }}>
-          <div style={{ width: "100%", overflowX: "auto", ...(lockInfo?.is_locked ? styles.lockedWrap : {}) }}>
-            <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={{ ...styles.thMain, width: 240 }} rowSpan={3}>สายรถ</th>
-                <th style={{ ...styles.thShift, background: "#FFEB3B" }} colSpan={(dayTimes.length * 2) + 1}>กะกลางวัน <strong>Day Shift</strong></th>
-                <th style={{ ...styles.thShift, background: "#F8BBD0" }} colSpan={(nightTimes.length * 2) + 1}>กะกลางคืน <strong>Night Shift</strong></th>
-                <th style={{ ...styles.thMain }} colSpan={6}>จำนวนการจ่าย Bus cost type</th>
-              </tr>
-              <tr>
-                {dayTimes.map((dt) => (
-                  <th key={`d-${dt.id}`} style={{ ...styles.thTime, background: "#FFFB0D" }} colSpan={2} title={dt.is_entry ? 'เวลาเข้า' : 'เวลาออก'}>
-                    <div style={styles.timeWrap}>
-                      <div>{String(dt.time).slice(0, 5)}</div>
-                      <div style={{...styles.timePill, ...(dt.is_entry ? styles.timePillEntry : styles.timePillExit)}}>
-                        {dt.is_entry ? 'เข้า' : 'ออก'}
-                      </div>
-                    </div>
-                  </th>
-                ))}
-                {/* Day shift vertical sum header at right */}
-                <th style={{ ...styles.thTime, background: "#FFFB0D" }} colSpan={1} title="รวมรถ">
-                  <div style={styles.timeWrap}>
-                    <div>รวมรถ</div>
-                  </div>
-                </th>
-                {nightTimes.map((dt) => (
-                  <th key={`n-${dt.id}`} style={{ ...styles.thTime, background: "#F5D0D7" }} colSpan={2} title={dt.is_entry ? 'เวลาเข้า' : 'เวลาออก'}>
-                    <div style={styles.timeWrap}>
-                      <div>{String(dt.time).slice(0, 5)}</div>
-                      <div style={{...styles.timePill, ...(dt.is_entry ? styles.timePillEntry : styles.timePillExit)}}>
-                        {dt.is_entry ? 'เข้า' : 'ออก'}
-                      </div>
-                    </div>
-                  </th>
-                ))}
-                {/* Night shift vertical sum header at right */}
-                <th style={{ ...styles.thTime, background: "#F5D0D7" }} colSpan={1} title="รวมรถ">
-                  <div style={styles.timeWrap}>
-                    <div>รวมรถ</div>
-                  </div>
-                </th>
-                <th style={styles.thPayHead} rowSpan={2}>รายเดือน</th>
-                <th style={styles.thPayHead} rowSpan={2}>จอดรอ</th>
-                <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันปกติ</th>
-                <th style={styles.thPayHead} rowSpan={2}>เหมาเที่ยว</th>
-                <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันหยุด</th>
-                <th style={styles.thPayHead} rowSpan={2}>เหมาเที่ยวกะดึก</th>
-              </tr>
-              <tr>
-                {dayTimes.map((dt) => (
-                  <Fragment key={`sub-d-${dt.id}`}>
-                    <th style={styles.thSub}>คน</th>
-                    <th style={styles.thSub}>รถ</th>
-                  </Fragment>
-                ))}
-                {/* Day shift vertical sum subheader at right */}
-                <th key={`sub-day-sum`} style={styles.thSub}>รถ</th>
-                {nightTimes.map((dt) => (
-                  <Fragment key={`sub-n-${dt.id}`}>
-                    <th style={styles.thSub}>คน</th>
-                    <th style={styles.thSub}>รถ</th>
-                  </Fragment>
-                ))}
-                {/* Night shift vertical sum subheader at right */}
-                <th key={`sub-night-sum`} style={styles.thSub}>รถ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {routes.map((r, idx) => (
-                <tr key={r.id}>
-                  <td style={styles.tdRoute}><span style={styles.routeIndex}>{idx + 1}.</span> {r.name}</td>
-                  {/* Day shift per-time cells */}
-                  {dayTimes.map((dt) => {
-                    const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
-                    const override = carPlanByDepartTime?.[dt.id]?.[r.id];
-                    const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
-                    return (
-                      <Fragment key={`cell-d-${dt.id}-${r.id}`}>
-                        <td style={styles.tdCell}>{people > 0 ? <span>{people}</span> : ""}</td>
-                        <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ""}</td>
-                      </Fragment>
-                    );
-                  })}
-                  {/* Day shift vertical sum cell at right */}
-                  {(() => {
-                    const dayCars = dayTimes.reduce((acc, dt) => {
-                      const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
-                      const override = carPlanByDepartTime?.[dt.id]?.[r.id];
-                      const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
-                      return acc + cars;
-                    }, 0);
-                    return (
-                      <td style={styles.tdCell} key={`cell-day-sum-${r.id}`}>{dayCars > 0 ? <b>{dayCars} คัน</b> : ''}</td>
-                    );
-                  })()}
-                  {/* Night shift per-time cells */}
-                  {nightTimes.map((dt) => {
-                    const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
-                    const override = carPlanByDepartTime?.[dt.id]?.[r.id];
-                    const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
-                    return (
-                      <Fragment key={`cell-n-${dt.id}-${r.id}`}>
-                        <td style={styles.tdCell}>{people > 0 ? <span>{people}</span> : ""}</td>
-                        <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ""}</td>
-                      </Fragment>
-                    );
-                  })}
-                  {/* Night shift vertical sum cell at right */}
-                  {(() => {
-                    const nightCars = nightTimes.reduce((acc, dt) => {
-                      const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
-                      const override = carPlanByDepartTime?.[dt.id]?.[r.id];
-                      const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
-                      return acc + cars;
-                    }, 0);
-                    return (
-                      <td style={styles.tdCell} key={`cell-night-sum-${r.id}`}>{nightCars > 0 ? <b>{nightCars} คัน</b> : ''}</td>
-                    );
-                  })()}
-                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_flat')}>{(payments?.[r.id]?.pay_flat||0) || ''}</td>
-                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_wait')}>{(payments?.[r.id]?.pay_wait||0) || ''}</td>
-                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_normal')}>{(payments?.[r.id]?.pay_ot_normal||0) || ''}</td>
-                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_trip')}>{(payments?.[r.id]?.pay_trip||0) || ''}</td>
-                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_holiday')}>{(payments?.[r.id]?.pay_ot_holiday||0) || ''}</td>
-                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_trip_night')}>{(payments?.[r.id]?.pay_trip_night||0) || ''}</td>
-                </tr>
-              ))}
-              {/* Totals row */}
-              <tr>
-                <td style={styles.tdTotalRoute}>รวม</td>
-                {dayTimes.map((dt) => (
-                  <Fragment key={`sum-d-${dt.id}`}>
-                    <td style={styles.tdSum}>
-                      {(totals.peopleTotals?.[dt.id] ?? 0) > 0 ? <b>{totals.peopleTotals[dt.id]}</b> : ''}
-                    </td>
-                    <td style={styles.tdSum}>
-                      {(totals.carTotals?.[dt.id] ?? 0) > 0 ? <b>{`${totals.carTotals[dt.id]} คัน`}</b> : ''}
-                    </td>
-                  </Fragment>
-                ))}
-                {/* Day shift vertical sum total at right */}
-                <td style={styles.tdSum}>{(dayTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)) > 0 ? <b>{`${dayTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)} คัน`}</b> : ''}</td>
-                {nightTimes.map((dt) => (
-                  <Fragment key={`sum-n-${dt.id}`}>
-                    <td style={styles.tdSum}>
-                      {(totals.peopleTotals?.[dt.id] ?? 0) > 0 ? <b>{totals.peopleTotals[dt.id]}</b> : ''}
-                    </td>
-                    <td style={styles.tdSum}>
-                      {(totals.carTotals?.[dt.id] ?? 0) > 0 ? <b>{`${totals.carTotals[dt.id]} คัน`}</b> : ''}
-                    </td>
-                  </Fragment>
-                ))}
-                {/* Night shift vertical sum total at right */}
-                <td style={styles.tdSum}>{(nightTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)) > 0 ? <b>{`${nightTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)} คัน`}</b> : ''}</td>
-                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_flat ?? 0) > 0 ? <b>{totals.payTotals.pay_flat}</b> : ''}</td>
-                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_wait ?? 0) > 0 ? <b>{totals.payTotals.pay_wait}</b> : ''}</td>
-                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_ot_normal ?? 0) > 0 ? <b>{totals.payTotals.pay_ot_normal}</b> : ''}</td>
-                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_trip ?? 0) > 0 ? <b>{totals.payTotals.pay_trip}</b> : ''}</td>
-                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_ot_holiday ?? 0) > 0 ? <b>{totals.payTotals.pay_ot_holiday}</b> : ''}</td>
-                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_trip_night ?? 0) > 0 ? <b>{totals.payTotals.pay_trip_night}</b> : ''}</td>
-              </tr>
-            </tbody>
-          </table>
-          </div>
-          {isAdminga && (
-            <div style={{ display:'flex', justifyContent:'flex-end', gap:12, padding:'12px 16px' }}>
-              <button style={styles.approveBtn} onClick={()=>toggleLock(true)}>บันทึกข้อมูล</button>
-              <button style={styles.cancelGrayBtn} onClick={()=>toggleLock(false)}>ยกเลิก</button>
+        {/* Capture Wrapper: Controls + Table */}
+        <div ref={captureRef}>
+          {/* Panel: Controls */}
+          <div style={{ ...styles.panelCard, paddingTop: 16 }}>
+            <div style={styles.controls}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={styles.label}>เลือกวันที่:</span>
+                <input type="date" value={date} onChange={(e)=> setDate(e.target.value)} style={styles.input} />
+              </div>
+              <button style={styles.primaryBtn} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
             </div>
-          )}
+          </div>
+          {/* Panel: Table */}
+          <div style={{ ...styles.panelCardTight }}>
+            <div style={{ width:'100%', overflowX:'auto', ...(lockInfo?.is_locked ? styles.lockedWrap : {}) }}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={{ ...styles.thMain, width:240 }} rowSpan={3}>สายรถ</th>
+                    <th style={{ ...styles.thShift, background:'#FFEB3B' }} colSpan={(dayTimes.length * 2) + 1}>กะกลางวัน <strong>Day Shift</strong></th>
+                    <th style={{ ...styles.thShift, background:'#F8BBD0' }} colSpan={(nightTimes.length * 2) + 1}>กะกลางคืน <strong>Night Shift</strong></th>
+                    <th style={{ ...styles.thMain }} colSpan={6}>จำนวนการจ่าย Bus cost type</th>
+                  </tr>
+                  <tr>
+                    {dayTimes.map((dt) => (
+                      <th key={`d-${dt.id}`} style={{ ...styles.thTime, background:'#FFFB0D' }} colSpan={2} title={dt.is_entry ? 'เวลาเข้า' : 'เวลาออก'}>
+                        <div style={styles.timeWrap}>
+                          <div>{String(dt.time).slice(0,5)}</div>
+                          <div style={{ ...styles.timePill, ...(dt.is_entry ? styles.timePillEntry : styles.timePillExit) }}>
+                            {dt.is_entry ? 'เข้า' : 'ออก'}
+                          </div>
+                        </div>
+                      </th>
+                    ))}
+                    {/* Day shift vertical sum header at right */}
+                    <th style={{ ...styles.thTime, background:'#FFFB0D' }} colSpan={1} title="รวมรถ">
+                      <div style={styles.timeWrap}>
+                        <div>รวมรถ</div>
+                      </div>
+                    </th>
+                    {nightTimes.map((dt) => (
+                      <th key={`n-${dt.id}`} style={{ ...styles.thTime, background:'#F5D0D7' }} colSpan={2} title={dt.is_entry ? 'เวลาเข้า' : 'เวลาออก'}>
+                        <div style={styles.timeWrap}>
+                          <div>{String(dt.time).slice(0,5)}</div>
+                          <div style={{ ...styles.timePill, ...(dt.is_entry ? styles.timePillEntry : styles.timePillExit) }}>
+                            {dt.is_entry ? 'เข้า' : 'ออก'}
+                          </div>
+                        </div>
+                      </th>
+                    ))}
+                    {/* Night shift vertical sum header at right */}
+                    <th style={{ ...styles.thTime, background:'#F5D0D7' }} colSpan={1} title="รวมรถ">
+                      <div style={styles.timeWrap}>
+                        <div>รวมรถ</div>
+                      </div>
+                    </th>
+                    <th style={styles.thPayHead} rowSpan={2}>รายเดือน</th>
+                    <th style={styles.thPayHead} rowSpan={2}>จอดรอ</th>
+                    <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันปกติ</th>
+                    <th style={styles.thPayHead} rowSpan={2}>เหมาเที่ยว</th>
+                    <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันหยุด</th>
+                    <th style={styles.thPayHead} rowSpan={2}>เหมาเที่ยวกะดึก</th>
+                  </tr>
+                  <tr>
+                    {dayTimes.map((dt) => (
+                      <Fragment key={`sub-d-${dt.id}`}>
+                        <th style={styles.thSub}>คน</th>
+                        <th style={styles.thSub}>รถ</th>
+                      </Fragment>
+                    ))}
+                    {/* Day shift vertical sum subheader at right */}
+                    <th key={`sub-day-sum`} style={styles.thSub}>รถ</th>
+                    {nightTimes.map((dt) => (
+                      <Fragment key={`sub-n-${dt.id}`}>
+                        <th style={styles.thSub}>คน</th>
+                        <th style={styles.thSub}>รถ</th>
+                      </Fragment>
+                    ))}
+                    {/* Night shift vertical sum subheader at right */}
+                    <th key={`sub-night-sum`} style={styles.thSub}>รถ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {routes.map((r, idx) => (
+                    <tr key={r.id}>
+                      <td style={styles.tdRoute}><span style={styles.routeIndex}>{idx + 1}.</span> {r.name}</td>
+                      {/* Day shift per-time cells */}
+                      {dayTimes.map((dt) => {
+                        const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+                        const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+                        const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
+                        return (
+                          <Fragment key={`cell-d-${dt.id}-${r.id}`}>
+                            <td style={styles.tdCell}>{people > 0 ? <span>{people}</span> : ''}</td>
+                            <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ''}</td>
+                          </Fragment>
+                        );
+                      })}
+                      {/* Day shift vertical sum cell at right */}
+                      {(() => {
+                        const dayCars = dayTimes.reduce((acc, dt) => {
+                          const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+                          const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+                          const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
+                          return acc + cars;
+                        }, 0);
+                        return (
+                          <td style={styles.tdCell} key={`cell-day-sum-${r.id}`}>{dayCars > 0 ? <b>{dayCars} คัน</b> : ''}</td>
+                        );
+                      })()}
+                      {/* Night shift per-time cells */}
+                      {nightTimes.map((dt) => {
+                        const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+                        const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+                        const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
+                        return (
+                          <Fragment key={`cell-n-${dt.id}-${r.id}`}>
+                            <td style={styles.tdCell}>{people > 0 ? <span>{people}</span> : ''}</td>
+                            <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ''}</td>
+                          </Fragment>
+                        );
+                      })}
+                      {/* Night shift vertical sum cell at right */}
+                      {(() => {
+                        const nightCars = nightTimes.reduce((acc, dt) => {
+                          const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+                          const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+                          const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
+                          return acc + cars;
+                        }, 0);
+                        return (
+                          <td style={styles.tdCell} key={`cell-night-sum-${r.id}`}>{nightCars > 0 ? <b>{nightCars} คัน</b> : ''}</td>
+                        );
+                      })()}
+                      <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_flat')}>{(payments?.[r.id]?.pay_flat||0) || ''}</td>
+                      <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_wait')}>{(payments?.[r.id]?.pay_wait||0) || ''}</td>
+                      <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_normal')}>{(payments?.[r.id]?.pay_ot_normal||0) || ''}</td>
+                      <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_trip')}>{(payments?.[r.id]?.pay_trip||0) || ''}</td>
+                      <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_holiday')}>{(payments?.[r.id]?.pay_ot_holiday||0) || ''}</td>
+                      <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_trip_night')}>{(payments?.[r.id]?.pay_trip_night||0) || ''}</td>
+                    </tr>
+                  ))}
+                  {/* Totals row */}
+                  <tr>
+                    <td style={styles.tdTotalRoute}>รวม</td>
+                    {dayTimes.map((dt) => (
+                      <Fragment key={`sum-d-${dt.id}`}>
+                        <td style={styles.tdSum}>
+                          {(totals.peopleTotals?.[dt.id] ?? 0) > 0 ? <b>{totals.peopleTotals[dt.id]}</b> : ''}
+                        </td>
+                        <td style={styles.tdSum}>
+                          {(totals.carTotals?.[dt.id] ?? 0) > 0 ? <b>{`${totals.carTotals[dt.id]} คัน`}</b> : ''}
+                        </td>
+                      </Fragment>
+                    ))}
+                    {/* Day shift vertical sum total at right */}
+                    <td style={styles.tdSum}>{(dayTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)) > 0 ? <b>{`${dayTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)} คัน`}</b> : ''}</td>
+                    {nightTimes.map((dt) => (
+                      <Fragment key={`sum-n-${dt.id}`}>
+                        <td style={styles.tdSum}>
+                          {(totals.peopleTotals?.[dt.id] ?? 0) > 0 ? <b>{totals.peopleTotals[dt.id]}</b> : ''}
+                        </td>
+                        <td style={styles.tdSum}>
+                          {(totals.carTotals?.[dt.id] ?? 0) > 0 ? <b>{`${totals.carTotals[dt.id]} คัน`}</b> : ''}
+                        </td>
+                      </Fragment>
+                    ))}
+                    {/* Night shift vertical sum total at right */}
+                    <td style={styles.tdSum}>{(nightTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)) > 0 ? <b>{`${nightTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)} คัน`}</b> : ''}</td>
+                    <td style={styles.tdSumPay}>{(totals.payTotals?.pay_flat ?? 0) > 0 ? <b>{totals.payTotals.pay_flat}</b> : ''}</td>
+                    <td style={styles.tdSumPay}>{(totals.payTotals?.pay_wait ?? 0) > 0 ? <b>{totals.payTotals.pay_wait}</b> : ''}</td>
+                    <td style={styles.tdSumPay}>{(totals.payTotals?.pay_ot_normal ?? 0) > 0 ? <b>{totals.payTotals.pay_ot_normal}</b> : ''}</td>
+                    <td style={styles.tdSumPay}>{(totals.payTotals?.pay_trip ?? 0) > 0 ? <b>{totals.payTotals.pay_trip}</b> : ''}</td>
+                    <td style={styles.tdSumPay}>{(totals.payTotals?.pay_ot_holiday ?? 0) > 0 ? <b>{totals.payTotals.pay_ot_holiday}</b> : ''}</td>
+                    <td style={styles.tdSumPay}>{(totals.payTotals?.pay_trip_night ?? 0) > 0 ? <b>{totals.payTotals.pay_trip_night}</b> : ''}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            {isAdminga && (
+              <div style={{ display:'flex', justifyContent:'flex-end', gap:12, padding:'12px 16px' }}>
+                <button style={styles.approveBtn} onClick={()=>toggleLock(true)}>บันทึกข้อมูล</button>
+                <button style={styles.cancelGrayBtn} onClick={()=>toggleLock(false)}>ยกเลิก</button>
+              </div>
+            )}
+          </div>
         </div>
         {editModal.open && (
           <>

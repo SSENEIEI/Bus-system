@@ -1,21 +1,7 @@
 {
-  "/api/bookings/route": "app/api/bookings/route.js",
   "/api/locations/route": "app/api/locations/route.js",
-  "/api/ot/cars/route": "app/api/ot/cars/route.js",
   "/api/ot/counts/route": "app/api/ot/counts/route.js",
-  "/api/ot/depart-times/route": "app/api/ot/depart-times/route.js",
-  "/api/ot/departments/route": "app/api/ot/departments/route.js",
   "/api/ot/locks/route": "app/api/ot/locks/route.js",
-  "/api/ot/plants/route": "app/api/ot/plants/route.js",
-  "/api/ot/routes/route": "app/api/ot/routes/route.js",
   "/api/ot/shifts/route": "app/api/ot/shifts/route.js",
-  "/api/products/route": "app/api/products/route.js",
-  "/api/route-pdfs/list/route": "app/api/route-pdfs/list/route.js",
-  "/api/vendor/payments/route": "app/api/vendor/payments/route.js",
-  "/api/vendor/rates/route": "app/api/vendor/rates/route.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/page": "app/page.js",
-  "/truck-table/page": "app/truck-table/page.js",
-  "/vendor-costs/page": "app/vendor-costs/page.js",
-  "/vendor-plan/page": "app/vendor-plan/page.js"
+  "/api/users/route": "app/api/users/route.js"
 }

@@ -6,6 +6,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import html2canvas from "html2canvas";
+import { fetchJSON } from '@/lib/http';
 
 // Toggle meta UI (title, debug, note)
 const SHOW_META = false;
@@ -82,12 +83,11 @@ export default function DashboardWeek() {
 	// Load products (public GET doesn't need token) + polling
 	useEffect(() => {
 		let abort = false;
-		async function loadProducts(){
+			async function loadProducts(){
 			setLoadingProducts(true);
 			try {
-				const res = await fetch('/api/products', { cache: 'no-store' });
-				const data = await res.json();
-				if(!abort) setProducts(Array.isArray(data) ? data : []);
+					const data = await fetchJSON('/api/products', {}, { cache:'no-store' });
+					if(!abort) setProducts(Array.isArray(data) ? data : []);
 			} catch(e){ if(!abort) setProducts([]); }
 			finally { if(!abort) setLoadingProducts(false); }
 		}
@@ -98,23 +98,14 @@ export default function DashboardWeek() {
 
 	// Load bookings for each day in week
 	const loadBookingsWeek = useCallback(async () => {
-		const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null; // optional
+			const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null; // optional
 		setLoading(true);
 		const acc = {};
 		await Promise.all(weekDays.map(async (d) => {
 			const dateStr = fmt(d);
 			try {
-				const res = await fetch(`/api/bookings?date=${dateStr}`, {
-					headers: { Authorization: `Bearer ${token}` },
-					cache: 'no-store'
-				});
-				if(res.status === 401){
-					console.warn('ไม่ได้รับอนุญาต bookings (token)?');
-					acc[dateStr] = [];
-					return;
-				}
-				const data = await res.json();
-				acc[dateStr] = Array.isArray(data) ? data : [];
+					const data = await fetchJSON(`/api/bookings?date=${dateStr}`, {}, { cache:'no-store' });
+					acc[dateStr] = Array.isArray(data) ? data : [];
 			} catch (e) {
 				console.error('โหลด bookings ล้มเหลว', dateStr, e);
 				acc[dateStr] = [];

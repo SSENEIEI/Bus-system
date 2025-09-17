@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { fetchJSON, postJSON } from '@/lib/http';
 import { FaBus } from 'react-icons/fa';
 import { formatWelcome } from '@/lib/formatters';
 import { useRouter } from 'next/navigation';
@@ -45,21 +46,13 @@ export default function TransportRegister() {
 
   // Load master data to provide dropdowns
   const fetchMasters = async () => {
-    const token = localStorage.getItem('token');
-    const headers = token ? { Authorization:`Bearer ${token}` } : {};
-    const [p, d, r, et, pp] = await Promise.all([
-      fetch('/api/ot/plants', { headers }),
-      fetch('/api/ot/departments', { headers }),
-      fetch('/api/ot/routes', { headers }),
-      fetch('/api/transport/masters/employee-types', { headers }),
-      fetch('/api/transport/masters/pickup-points', { headers })
+    const [pRows, dRows, rRows, etRows, ppRows] = await Promise.all([
+      fetchJSON('/api/ot/plants'),
+      fetchJSON('/api/ot/departments'),
+      fetchJSON('/api/ot/routes'),
+      fetchJSON('/api/transport/masters/employee-types'),
+      fetchJSON('/api/transport/masters/pickup-points')
     ]);
-    const parseMaybeJson = async (res) => {
-      const ct = res.headers.get('content-type') || '';
-      if (ct.includes('application/json')) { try { return await res.json(); } catch { return null; } }
-      return null;
-    };
-    const [pRows, dRows, rRows, etRows, ppRows] = await Promise.all([parseMaybeJson(p), parseMaybeJson(d), parseMaybeJson(r), parseMaybeJson(et), parseMaybeJson(pp)]);
     setPlants(Array.isArray(pRows) ? pRows : []);
     setDepartments(Array.isArray(dRows) ? dRows : []);
     setRoutes(Array.isArray(rRows) ? rRows : []);
@@ -71,12 +64,8 @@ export default function TransportRegister() {
   const fetchList = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const url = `/api/transport/registrations${q?`?q=${encodeURIComponent(q)}`:''}`;
-      const res = await fetch(url, { headers:{ Authorization:`Bearer ${token}` }, cache:'no-store' });
-      const ct = res.headers.get('content-type') || '';
-      let data = null;
-      if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
+      const data = await fetchJSON(url, {}, { cache:'no-store' });
       setList(Array.isArray(data) ? data : []);
     } finally { setLoading(false); }
   };
@@ -85,6 +74,7 @@ export default function TransportRegister() {
   const handleLogout = () => { try{ localStorage.removeItem('token'); localStorage.removeItem('user'); } catch{} router.push('/'); };
 
   const downloadCsv = async () => {
+    // keep as is using fetch; binary download not covered by fetchJSON
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/transport/registrations?format=csv${q?`&q=${encodeURIComponent(q)}`:''}`, { headers:{ Authorization:`Bearer ${token}` } });
     const blob = await res.blob();
@@ -126,11 +116,12 @@ export default function TransportRegister() {
   const url = '/api/transport/registrations';
   const method = isEdit && form.id ? 'PUT' : 'POST';
   const body = method === 'PUT' ? JSON.stringify({ id: form.id, ...payload }) : JSON.stringify(payload);
-  const res = await fetch(url, { method, headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body });
-    let data = null;
-    const ct = res.headers.get('content-type') || '';
-    if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
-    if (!res.ok) { alert((data && data.error) || 'บันทึกล้มเหลว'); return; }
+  try {
+    await postJSON(url, JSON.parse(body));
+  } catch (e) {
+    alert(e?.message || 'บันทึกล้มเหลว');
+    return;
+  }
   setShowModal(false); setIsEdit(false); setForm({ employee_code:'', full_name:'', employee_type:'', plant_id:'', department_id:'', department_text:'', route_id:'', pickup_point:'' });
     if (!isAdminga) setSuccessOpen(true);
     fetchList();
@@ -168,14 +159,12 @@ export default function TransportRegister() {
 
   // Add inline new option handlers
   const addNewOption = async (kind) => {
-    const token = localStorage.getItem('token');
-    const headers = { 'Content-Type':'application/json', Authorization:`Bearer ${token}` };
+    const headers = { 'Content-Type':'application/json' };
     const name = (adding.value || '').trim();
     if (!name) return;
     try {
       if (kind === 'empType') {
-        const res = await fetch('/api/transport/masters/employee-types', { method:'POST', headers, body: JSON.stringify({ name }) });
-        if (!res.ok) throw new Error('เพิ่มประเภทพนักงานล้มเหลว');
+        await postJSON('/api/transport/masters/employee-types', { name });
         setAdding({ type:null, value:'' });
         await fetchMasters();
         setForm(prev => ({ ...prev, employee_type: name }));
@@ -185,8 +174,7 @@ export default function TransportRegister() {
         const pointNo = (adding.point_no || '').toString().trim();
         const finalName = pointNo ? `${name} จุดที่ ${pointNo}` : name;
         const body = { name: finalName, route_id: routeId };
-        const res = await fetch('/api/transport/masters/pickup-points', { method:'POST', headers, body: JSON.stringify(body) });
-        if (!res.ok) throw new Error('เพิ่มจุดขึ้นรถล้มเหลว');
+        await postJSON('/api/transport/masters/pickup-points', body);
         setAdding({ type:null, value:'', route_id:'', point_no:'' });
         await fetchMasters();
         setForm(prev => ({ ...prev, pickup_point: finalName }));
@@ -199,15 +187,11 @@ export default function TransportRegister() {
     if (!(editing.kind === 'empType' && editing.id)) return;
     const name = (editing.value || '').trim();
     if (!name) return;
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/transport/masters/employee-types', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ id: editing.id, name })
-    });
-    let data = null; const ct = res.headers.get('content-type') || '';
-    if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
-    if (!res.ok) { alert((data && data.error) || 'แก้ไขข้อมูลล้มเหลว'); return; }
+    try {
+      await postJSON('/api/transport/masters/employee-types', { id: editing.id, name, _method: 'PUT' });
+    } catch (e) {
+      alert(e?.message || 'แก้ไขข้อมูลล้มเหลว'); return;
+    }
     await fetchMasters();
     setEditing({ kind: null, id: null, value: '', extra: null });
   };
@@ -216,16 +200,9 @@ export default function TransportRegister() {
     if (!(editing.kind === 'pickup' && editing.id)) return;
     const name = (editing.value || '').trim();
     if (!name) return;
-    const token = localStorage.getItem('token');
     const body = { id: editing.id, name, route_id: editing.extra?.route_id || null };
-    const res = await fetch('/api/transport/masters/pickup-points', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body)
-    });
-    let data = null; const ct = res.headers.get('content-type') || '';
-    if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
-    if (!res.ok) { alert((data && data.error) || 'แก้ไขข้อมูลล้มเหลว'); return; }
+    try { await postJSON('/api/transport/masters/pickup-points', { ...body, _method:'PUT' }); }
+    catch(e){ alert(e?.message || 'แก้ไขข้อมูลล้มเหลว'); return; }
     await fetchMasters();
     setEditing({ kind: null, id: null, value: '', extra: null });
   };
@@ -233,11 +210,11 @@ export default function TransportRegister() {
   // Delete options
   const deleteEmpType = async (id) => {
     if (!confirm('ต้องการลบประเภทพนักงานนี้หรือไม่?')) return;
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/transport/masters/employee-types?id=${id}`, { method:'DELETE', headers:{ Authorization:`Bearer ${token}` } });
-    let data = null; const ct = res.headers.get('content-type') || '';
-    if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
-    if (!res.ok) { alert((data && data.error) || 'ลบข้อมูลล้มเหลว'); return; }
+    try {
+      await postJSON(`/api/transport/masters/employee-types?id=${id}`, { _method:'DELETE' });
+    } catch (e) {
+      alert(e?.message || 'ลบข้อมูลล้มเหลว'); return;
+    }
     await fetchMasters();
     // Clear form selection if it pointed to deleted value
     if (!empTypes.find(t => t.id === id)?.name === form.employee_type) {
@@ -246,11 +223,8 @@ export default function TransportRegister() {
   };
   const deletePickupPoint = async (id) => {
     if (!confirm('ต้องการลบจุดขึ้นรถนี้หรือไม่?')) return;
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/transport/masters/pickup-points?id=${id}`, { method:'DELETE', headers:{ Authorization:`Bearer ${token}` } });
-    let data = null; const ct = res.headers.get('content-type') || '';
-    if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
-    if (!res.ok) { alert((data && data.error) || 'ลบข้อมูลล้มเหลว'); return; }
+    try { await postJSON(`/api/transport/masters/pickup-points?id=${id}`, { _method:'DELETE' }); }
+    catch(e){ alert(e?.message || 'ลบข้อมูลล้มเหลว'); return; }
     await fetchMasters();
     // Clear selection if deleted
     const deleted = pickupPoints.find(pp => pp.id === id);
@@ -261,11 +235,8 @@ export default function TransportRegister() {
 
   const handleDelete = async (id) => {
     if (!confirm('ต้องการลบข้อมูลนี้หรือไม่?')) return;
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/transport/registrations?id=${id}`, { method:'DELETE', headers:{ Authorization:`Bearer ${token}` } });
-    let data = null; const ct = res.headers.get('content-type') || '';
-    if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
-    if (!res.ok) { alert((data && data.error) || 'ลบข้อมูลล้มเหลว'); return; }
+    try { await postJSON(`/api/transport/registrations?id=${id}`, { _method:'DELETE' }); }
+    catch(e){ alert(e?.message || 'ลบข้อมูลล้มเหลว'); return; }
     fetchList();
   };
 

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
+import { fetchJSON, postJSON } from '@/lib/http';
 import { formatWelcome } from '@/lib/formatters';
 
 export default function OtOverview() {
@@ -24,25 +25,21 @@ export default function OtOverview() {
   const getPlantColor = (code) => plantColors[code] || '#95a5a6';
 
   const fetchMasters = async () => {
-    const token = localStorage.getItem('token');
-    const [p, d, s] = await Promise.all([
-      fetch('/api/ot/plants', { headers:{ Authorization:`Bearer ${token}` }}),
-      fetch('/api/ot/departments', { headers:{ Authorization:`Bearer ${token}` }}),
-      fetch('/api/ot/shifts', { headers:{ Authorization:`Bearer ${token}` }}),
+    const [plantsRows, deptRows, shiftRows] = await Promise.all([
+      fetchJSON('/api/ot/plants'),
+      fetchJSON('/api/ot/departments'),
+      fetchJSON('/api/ot/shifts'),
     ]);
-    const [plants, departments, shifts] = await Promise.all([p.json(), d.json(), s.json()]);
-    setPlants(Array.isArray(plants) ? plants : []);
-    setDepartments(Array.isArray(departments) ? departments : []);
-    setShifts(Array.isArray(shifts) ? shifts : []);
+    setPlants(Array.isArray(plantsRows) ? plantsRows : []);
+    setDepartments(Array.isArray(deptRows) ? deptRows : []);
+    setShifts(Array.isArray(shiftRows) ? shiftRows : []);
   };
 
   // Load and persist manual grid counts from DB (ot_overview_counts)
   const loadOverviewCounts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ot/overview-counts?date=${date}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      const rows = await res.json();
-      if (res.ok && Array.isArray(rows)) {
+      const rows = await fetchJSON(`/api/ot/overview-counts?date=${date}`) || [];
+      if (Array.isArray(rows)) {
         const map = {};
         rows.forEach(r => { map[keyOf(r.shift_id, r.department_id)] = Math.max(0, Number(r.count)||0); });
         setCounts(map);
@@ -53,7 +50,7 @@ export default function OtOverview() {
   };
   useEffect(() => { loadOverviewCounts(); }, [date]);
 
-  useEffect(() => { fetchMasters(); }, []);
+  useEffect(() => { let c=false; (async()=>{ if(!c) await fetchMasters(); })(); return ()=>{c=true}; }, []);
   useEffect(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user')||'null');
@@ -62,7 +59,7 @@ export default function OtOverview() {
   }, []);
   useEffect(() => { /* grid manual now */ fetchShopPlan(); }, [date]);
   // Load lock for selected date
-  useEffect(()=>{(async()=>{ try { const res=await fetch(`/api/ot/locks?date=${date}`); const data=await res.json(); setLockInfo(data||{the_date:date,is_locked:0}); } catch { setLockInfo({ the_date:date, is_locked:0 }); } })();}, [date]);
+  useEffect(()=>{ let c=false; (async()=>{ const data=await fetchJSON(`/api/ot/locks?date=${date}`); if(!c) setLockInfo(data||{the_date:date,is_locked:0}); })(); return ()=>{c=true}; }, [date]);
 
   // Build dynamic plant code list (prefer AC/RF/SSC order, then others A-Z)
   const plantOrderPref = useMemo(() => ['AC','RF','SSC'], []);
@@ -104,16 +101,13 @@ export default function OtOverview() {
 
   const fetchShopPlan = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ot/shops?date=${date}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (res.ok && data) setShopPlan({
+      const data = await fetchJSON(`/api/ot/shops?date=${date}`);
+      if (data) setShopPlan({
         rice_shops: Number(data.rice_shops)||0,
         minimart_shops: Number(data.minimart_shops)||0,
         noodle_shops: Number(data.noodle_shops)||0,
       });
       else setShopPlan(computeAutoShopPlan(grandTotal));
-      // After load, treat as non-override so it can auto follow totals unless user edits and saves.
       setShopHasOverride(false);
     } catch { setShopPlan(computeAutoShopPlan(grandTotal)); }
   };
@@ -127,8 +121,7 @@ export default function OtOverview() {
       (async ()=>{
         try {
           if (isAdminga) {
-            const token = localStorage.getItem('token');
-            await fetch('/api/ot/shops', { method:'POST', headers:{ 'Content-Type':'application/json', ...(token?{ Authorization:`Bearer ${token}` }:{}) }, body: JSON.stringify({ the_date: date, ...auto }) });
+            await postJSON('/api/ot/shops', { the_date: date, ...auto });
           }
         } catch {}
       })();
@@ -138,10 +131,7 @@ export default function OtOverview() {
 
   const saveShopPlan = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/ot/shops', { method:'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ the_date: date, ...shopPlan }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'บันทึกล้มเหลว');
+      const data = await postJSON('/api/ot/shops', { the_date: date, ...shopPlan });
       setShopEdit(false);
       setShopHasOverride(true);
       await fetchShopPlan();
@@ -162,10 +152,7 @@ export default function OtOverview() {
       return;
     }
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/ot/shops', { method:'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ the_date: date, ...auto }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'รีเฟรชไม่สำเร็จ');
+      const data = await postJSON('/api/ot/shops', { the_date: date, ...auto });
       setShopPlan(auto);
       setShopEdit(false);
       setShopHasOverride(false);
@@ -199,15 +186,13 @@ export default function OtOverview() {
 
   const fetchNursePlan = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ot/nurses?date=${date}`, { headers: { Authorization: `Bearer ${token}` } });
-      const rows = await res.json();
-      if (res.ok && Array.isArray(rows) && rows.length) {
+      const rows = await fetchJSON(`/api/ot/nurses?date=${date}`) || [];
+      if (Array.isArray(rows) && rows.length) {
         const obj = {};
         rows.forEach(r => { obj[r.shift_id] = Math.max(0, Number(r.nurse_count)||0); });
         setNursePlan(obj);
         const sum = Object.values(obj).reduce((a,b)=>a+Number(b||0),0);
-        setNurseHasOverride(sum > 0); // treat as override only when >0
+        setNurseHasOverride(sum > 0);
       } else {
         setNursePlan(computeAutoNursePlan());
         setNurseHasOverride(false);
@@ -221,11 +206,8 @@ export default function OtOverview() {
 
   const saveNursePlan = async () => {
     try {
-      const token = localStorage.getItem('token');
       const items = shifts.map(s => ({ shift_id: s.id, nurse_count: Math.max(0, Number(nursePlan[s.id])||0) }));
-      const res = await fetch('/api/ot/nurses', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify({ the_date: date, items }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'บันทึกล้มเหลว');
+      const data = await postJSON('/api/ot/nurses', { the_date: date, items });
       setNurseEdit(false);
       setNurseHasOverride(true);
       await fetchNursePlan();
@@ -246,11 +228,8 @@ export default function OtOverview() {
       return;
     }
     try {
-      const token = localStorage.getItem('token');
       const items = shifts.map(s => ({ shift_id: s.id, nurse_count: defaults[s.id] }));
-      const res = await fetch('/api/ot/nurses', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify({ the_date: date, items }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'รีเฟรชไม่สำเร็จ');
+      const data = await postJSON('/api/ot/nurses', { the_date: date, items });
       setNursePlan(defaults);
       setNurseEdit(false);
       await fetchNursePlan();
@@ -266,9 +245,7 @@ export default function OtOverview() {
     setLockInfo(prev=>({ ...(prev||{}), the_date: date, is_locked: next }));
     if (next) { setShopEdit(false); setNurseEdit(false); }
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/ot/locks', { method:'POST', headers:{ 'Content-Type':'application/json', ...(token?{ Authorization:`Bearer ${token}` }:{}) }, body: JSON.stringify({ the_date: date, is_locked: next }) });
-      if (!res.ok) throw new Error('lock save failed');
+      await postJSON('/api/ot/locks', { the_date: date, is_locked: next });
     } catch {
       // revert
       setLockInfo(prev=>({ ...(prev||{}), is_locked: next?0:1 }));
@@ -279,10 +256,8 @@ export default function OtOverview() {
   const [deptLocks, setDeptLocks] = useState({}); // department_id -> boolean
   const loadDeptLocks = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ot/locks?date=${date}&list=departments`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await fetchJSON(`/api/ot/locks?date=${date}&list=departments`);
+      if (data) {
         const map = {};
         (Array.isArray(data) ? data : []).forEach(row => { map[row.department_id] = !!row.is_locked; });
         setDeptLocks(map);
@@ -325,12 +300,7 @@ export default function OtOverview() {
     });
     // Persist to DB
     try {
-      const token = localStorage.getItem('token');
-      await fetch('/api/ot/overview-counts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ the_date: date, department_id: countModal.dept.id, shift_id: countModal.shift.id, count: val })
-      });
+      await postJSON('/api/ot/overview-counts', { the_date: date, department_id: countModal.dept.id, shift_id: countModal.shift.id, count: val });
     } catch {}
 
     // Recalculate and (if adminga and not overriding) auto-save shop and nurse plans
@@ -347,12 +317,7 @@ export default function OtOverview() {
           setShopPlan(auto);
           if (isAdminga) {
             try {
-              const token = localStorage.getItem('token');
-              await fetch('/api/ot/shops', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ the_date: date, ...auto })
-              });
+              await postJSON('/api/ot/shops', { the_date: date, ...auto });
             } catch {}
           }
       }
@@ -364,13 +329,8 @@ export default function OtOverview() {
         setNursePlan(autoNurse);
         if (isAdminga) {
           try {
-            const token = localStorage.getItem('token');
             const items = shifts.map(s => ({ shift_id: s.id, nurse_count: autoNurse[s.id] }));
-            await fetch('/api/ot/nurses', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-              body: JSON.stringify({ the_date: date, items })
-            });
+            await postJSON('/api/ot/nurses', { the_date: date, items });
           } catch {}
         }
       }
@@ -391,10 +351,8 @@ export default function OtOverview() {
       const map = { ...(prev||{}) }; myDepts.forEach(id => { map[id] = !!next; }); return map;
     });
     try {
-      const token = localStorage.getItem('token');
       const results = await Promise.all(myDepts.map(async (id) => {
-        const res = await fetch('/api/ot/locks', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify({ the_date: date, is_locked: next, department_id: id }) });
-        return res.ok ? null : (await res.json())?.error || 'error';
+        try { await postJSON('/api/ot/locks', { the_date: date, is_locked: next, department_id: id }); return null; } catch (e) { return e?.message || 'error'; }
       }));
       const firstErr = results.find(Boolean);
       if (firstErr) alert(firstErr || 'สลับล็อคแผนกล้มเหลว');
@@ -421,7 +379,7 @@ export default function OtOverview() {
 
   return (
     <div style={styles.wrapper}>
-      <div style={styles.stack} ref={captureRef}>
+      <div style={styles.stack}>
         {/* Header Panel */}
         <div style={{ ...styles.panelCard, paddingBottom: 16 }}>
           <div style={styles.headerRow}>
@@ -436,20 +394,21 @@ export default function OtOverview() {
             </div>
           </div>
         </div>
-
-        {/* Controls Panel */}
-        <div style={{ ...styles.panelCard, paddingTop: 16 }}>
-          <div style={styles.controls}>
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-              <span style={styles.label}>เลือกวันที่:</span>
-              <input type="date" value={date} onChange={(e)=>setDate(e.target.value)} style={styles.input} />
+        {/* Capture Wrapper: Controls + Table + Summary */}
+        <div ref={captureRef}>
+          {/* Controls Panel */}
+          <div style={{ ...styles.panelCard, paddingTop: 16 }}>
+            <div style={styles.controls}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={styles.label}>เลือกวันที่:</span>
+                <input type="date" value={date} onChange={(e)=>setDate(e.target.value)} style={styles.input} />
+              </div>
+              <button style={styles.primaryBtn} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
             </div>
-            <button style={styles.primaryBtn} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
           </div>
-        </div>
 
-        {/* Table Panel (manual-entry grid) */}
-        <div style={{ ...styles.panelCard, padding:'0 0 24px 0', overflow:'hidden' }}>
+          {/* Table Panel (manual-entry grid) */}
+          <div style={{ ...styles.panelCard, padding:'0 0 24px 0', overflow:'hidden' }}>
           <div style={{ width:'100%', overflowX:'auto', ...(lockInfo?.is_locked ? (isAdminga?styles.visualLockedWrap:styles.lockedWrap) : {}) }}>
             <table style={styles.table}>
               <thead>
@@ -509,10 +468,10 @@ export default function OtOverview() {
               <button style={styles.cancelGrayBtn} onClick={()=>toggleMyDeptLock(false)}>ยกเลิก</button>
             </div>
           ) : null}
-        </div>
+          </div>
 
-        {/* Summary/Controls Panel */}
-        <div style={{ ...styles.panelCard }}>
+          {/* Summary/Controls Panel */}
+          <div style={{ ...styles.panelCard }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, ...(lockInfo?.is_locked ? (isAdminga?styles.visualLockedWrap:styles.lockedWrap) : {}) }}>
             {/* Shops */}
             <div style={styles.infoCard}>
@@ -594,6 +553,7 @@ export default function OtOverview() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
 

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
+import { fetchJSON, postJSON } from '@/lib/http';
 import { formatWelcome } from '@/lib/formatters';
 
 export default function TruckTable() {
@@ -36,28 +37,17 @@ export default function TruckTable() {
   }, [plants, plantOrder]);
 
   const loadMasters = async () => {
-    const token = localStorage.getItem('token');
-    const [p, r, s, d] = await Promise.all([
-      fetch('/api/ot/plants', { headers:{ Authorization:`Bearer ${token}` }}),
-      fetch('/api/ot/routes'),
-      fetch('/api/ot/shifts', { headers:{ Authorization:`Bearer ${token}` }}),
-      fetch('/api/ot/departments', { headers:{ Authorization:`Bearer ${token}` }})
-    ]);
-    const parseMaybeJson = async (res) => {
-      const ct = res.headers.get('content-type') || '';
-      if (ct.includes('application/json')) {
-        try { return await res.json(); } catch { return null; }
-      }
-      return null;
-    };
     const [plantRowsRaw, routeRowsRaw, shiftRowsRaw, deptRowsRaw] = await Promise.all([
-      parseMaybeJson(p), parseMaybeJson(r), parseMaybeJson(s), parseMaybeJson(d)
+      fetchJSON('/api/ot/plants'),
+      fetchJSON('/api/ot/routes'),
+      fetchJSON('/api/ot/shifts'),
+      fetchJSON('/api/ot/departments')
     ]);
-    setPlants(Array.isArray(plantRowsRaw)? plantRowsRaw: []);
-    setRoutes(Array.isArray(routeRowsRaw)? routeRowsRaw: []);
-    const sh = Array.isArray(shiftRowsRaw)? shiftRowsRaw: [];
+    setPlants(Array.isArray(plantRowsRaw) ? plantRowsRaw : []);
+    setRoutes(Array.isArray(routeRowsRaw) ? routeRowsRaw : []);
+    const sh = Array.isArray(shiftRowsRaw) ? shiftRowsRaw : [];
     setShifts(sh);
-    setDepartments(Array.isArray(deptRowsRaw)? deptRowsRaw: []);
+    setDepartments(Array.isArray(deptRowsRaw) ? deptRowsRaw : []);
     if (!shiftId && sh.length) setShiftId(sh[0].id);
   };
 
@@ -65,11 +55,7 @@ export default function TruckTable() {
 
   const loadDepartTimes = async (sid) => {
     if (!sid) return setDepartTimes([]);
-    const token = localStorage.getItem('token');
-  const res = await fetch(`/api/ot/depart-times?shiftId=${sid}`, { headers:{ Authorization:`Bearer ${token}` }, cache: 'no-store' });
-    const ct = res.headers.get('content-type') || '';
-    let data = null;
-    if (ct.includes('application/json')) { try { data = await res.json(); } catch { data = null; } }
+    const data = await fetchJSON(`/api/ot/depart-times?shiftId=${sid}`, {}, { cache:'no-store' });
     setDepartTimes(Array.isArray(data) ? data : []);
   };
   useEffect(() => { loadDepartTimes(shiftId); }, [shiftId]);
@@ -77,29 +63,20 @@ export default function TruckTable() {
   // Aggregate per depart time -> per route -> per plant (sum across departments)
   const loadCounts = async () => {
     if (!date || !shiftId || departTimes.length===0) { setCountsBy({}); return; }
-    const token = localStorage.getItem('token');
     const acc = {};
     for (const dt of departTimes) {
-      try {
-        const res = await fetch(`/api/ot/counts?date=${date}&shiftId=${shiftId}&departTimeId=${dt.id}`, { headers:{ Authorization:`Bearer ${token}` }});
-        const ct = res.headers.get('content-type') || '';
-        let rows = [];
-        if (ct.includes('application/json')) { try { rows = await res.json(); } catch { rows = []; } }
-        const map = {};
-        for (const row of (Array.isArray(rows)? rows: [])) {
-          const rId = row.route_id; const pId = row.plant_id; const c = Number(row.count)||0;
-          if (!map[rId]) map[rId] = {};
-          map[rId][pId] = (map[rId][pId]||0) + c; // sum across departments
-        }
-        // compute ttl per route
-        const ttl = {};
-        Object.keys(map).forEach(rId => {
-          ttl[rId] = Object.values(map[rId]).reduce((s,v)=> s + (Number(v)||0), 0);
-        });
-        acc[dt.id] = { map, ttl };
-      } catch {
-        acc[dt.id] = { map:{}, ttl:{} };
+      const rows = await fetchJSON(`/api/ot/counts?date=${date}&shiftId=${shiftId}&departTimeId=${dt.id}`) || [];
+      const map = {};
+      for (const row of (Array.isArray(rows)? rows: [])) {
+        const rId = row.route_id; const pId = row.plant_id; const c = Number(row.count)||0;
+        if (!map[rId]) map[rId] = {};
+        map[rId][pId] = (map[rId][pId]||0) + c; // sum across departments
       }
+      const ttl = {};
+      Object.keys(map).forEach(rId => {
+        ttl[rId] = Object.values(map[rId]).reduce((s,v)=> s + (Number(v)||0), 0);
+      });
+      acc[dt.id] = { map, ttl };
     }
     setCountsBy(acc);
   };
@@ -108,18 +85,12 @@ export default function TruckTable() {
   // Load car plan overrides per depart time
   const loadCarPlan = async () => {
     if (!date || !shiftId || departTimes.length===0) { setCarPlan({}); return; }
-    const token = localStorage.getItem('token');
     const acc = {};
     for (const dt of departTimes) {
-      try {
-        const res = await fetch(`/api/ot/cars?date=${date}&shiftId=${shiftId}&departTimeId=${dt.id}`, { headers:{ Authorization:`Bearer ${token}` } });
-        const ct = res.headers.get('content-type')||'';
-        let rows = [];
-        if (ct.includes('application/json')) { try { rows = await res.json(); } catch { rows = []; } }
-        const m = {};
-        for (const r of (Array.isArray(rows)?rows:[])) m[r.route_id] = Number(r.car_count)||0;
-        acc[dt.id] = m;
-      } catch { acc[dt.id] = {}; }
+      const rows = await fetchJSON(`/api/ot/cars?date=${date}&shiftId=${shiftId}&departTimeId=${dt.id}`) || [];
+      const m = {};
+      for (const r of (Array.isArray(rows)?rows:[])) m[r.route_id] = Number(r.car_count)||0;
+      acc[dt.id] = m;
     }
     setCarPlan(acc);
   };
@@ -135,7 +106,9 @@ export default function TruckTable() {
 
   const handleSaveAsImage = async () => {
     if (!captureRef.current) return;
-    const canvas = await html2canvas(captureRef.current);
+    const canvas = await html2canvas(captureRef.current, {
+      backgroundColor: isNightShift ? '#000000' : '#ffffff',
+    });
     const link = document.createElement('a');
     link.download = `truck-table-${date}.png`;
     link.href = canvas.toDataURL('image/png');
@@ -182,11 +155,8 @@ export default function TruckTable() {
   const saveCarPlan = async () => {
     if (!carModal.open || !carModal.dt || !carModal.route) return;
     try {
-      const token = localStorage.getItem('token');
       const body = { the_date: date, shift_id: shiftId, depart_time_id: carModal.dt.id, route_id: carModal.route.id, car_count: Math.max(0, Number(carModal.value)||0) };
-      const res = await fetch('/api/ot/cars', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify(body) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error||'บันทึกล้มเหลว');
+      await postJSON('/api/ot/cars', body);
       setCarModal({ open:false, dt:null, route:null, value:0 });
       await loadCarPlan();
     } catch (e) {
@@ -203,7 +173,7 @@ export default function TruckTable() {
       ...styles.wrapper,
       ...(isNightShift ? { background: '#000000' } : {})
     }}>
-      <div style={styles.stack} ref={captureRef}>
+      <div style={styles.stack}>
         {/* Panel: Header */}
         <div style={{ ...styles.panelCard, paddingBottom: 16 }}>
           <div style={styles.headerRow}>
@@ -220,26 +190,28 @@ export default function TruckTable() {
           </div>
           </div>
         </div>
-        {/* Panel: Controls */}
-        <div style={{ ...styles.panelCard, paddingTop: 16 }}>
-          <div style={styles.controls}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <span style={styles.label}>เลือกวันที่:</span>
-            <input type="date" value={date} onChange={e=> setDate(e.target.value)} style={styles.input} />
+        {/* Capture Wrapper: Controls + Table */}
+        <div ref={captureRef}>
+          {/* Panel: Controls */}
+          <div style={{ ...styles.panelCard, paddingTop: 16 }}>
+            <div style={styles.controls}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={styles.label}>เลือกวันที่:</span>
+              <input type="date" value={date} onChange={e=> setDate(e.target.value)} style={styles.input} />
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={styles.label}>กะ:</span>
+              <select value={shiftId||''} onChange={e=> setShiftId(Number(e.target.value)||null)} style={styles.input}>
+                {shifts.map(s => <option key={s.id} value={s.id}>{s.name_th || s.name_en}</option>)}
+              </select>
+            </div>
+            <button style={styles.primaryBtn} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
+            </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <span style={styles.label}>กะ:</span>
-            <select value={shiftId||''} onChange={e=> setShiftId(Number(e.target.value)||null)} style={styles.input}>
-              {shifts.map(s => <option key={s.id} value={s.id}>{s.name_th || s.name_en}</option>)}
-            </select>
-          </div>
-          <button style={styles.primaryBtn} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
-          </div>
-        </div>
-        {/* Panel: Table */}
-        <div style={{ ...styles.panelCardTight }}>
-          <div style={{ width:'100%', overflowX:'auto' }}>
-            <table style={styles.table}>
+          {/* Panel: Table */}
+          <div style={{ ...styles.panelCardTight }}>
+            <div style={{ width:'100%', overflowX:'auto' }}>
+              <table style={styles.table}>
             <thead>
               <tr>
                 <th style={{...styles.thMain, width:280, textAlign:'center'}} rowSpan={2}>สายรถ</th>
@@ -340,7 +312,8 @@ export default function TruckTable() {
                 })}
               </tr>
             </tbody>
-          </table>
+              </table>
+            </div>
           </div>
         </div>
 
