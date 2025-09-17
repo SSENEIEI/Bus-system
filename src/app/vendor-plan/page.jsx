@@ -213,6 +213,31 @@ export default function VendorPlanPage() {
 
   const dayTimes = (departTimesByShift[dayNightShiftIds.day] || []);
   const nightTimes = (departTimesByShift[dayNightShiftIds.night] || []);
+  const allTimes = [...dayTimes, ...nightTimes];
+
+  // Totals across all routes per depart time and payment categories
+  const totals = useMemo(() => {
+    const peopleTotals = {};
+    const carTotals = {};
+    for (const dt of allTimes) {
+      let pSum = 0; let cSum = 0;
+      for (const r of routes) {
+        const ppl = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+        pSum += ppl;
+        cSum += calcVehicles(ppl);
+      }
+      peopleTotals[dt.id] = pSum;
+      carTotals[dt.id] = cSum;
+    }
+    const payKeys = ['pay_flat','pay_wait','pay_ot_normal','pay_trip','pay_ot_holiday','pay_trip_night'];
+    const payTotals = {};
+    for (const k of payKeys) {
+      let s = 0;
+      for (const r of routes) s += Number(payments?.[r.id]?.[k] || 0);
+      payTotals[k] = s;
+    }
+    return { peopleTotals, carTotals, payTotals };
+  }, [allTimes, routes, countsByDepartTime, payments]);
 
   const welcomeText = useMemo(() => formatWelcome(user, departments, plants), [user, departments, plants]);
 
@@ -252,8 +277,8 @@ export default function VendorPlanPage() {
             <thead>
               <tr>
                 <th style={{ ...styles.thMain, width: 240 }} rowSpan={3}>สายรถ</th>
-                <th style={{ ...styles.thShift, background: "#FFEB3B" }} colSpan={dayTimes.length * 2}>กะกลางวัน <strong>Day Shift</strong></th>
-                <th style={{ ...styles.thShift, background: "#F8BBD0" }} colSpan={nightTimes.length * 2}>กะกลางคืน <strong>Night Shift</strong></th>
+                <th style={{ ...styles.thShift, background: "#FFEB3B" }} colSpan={(dayTimes.length * 2) + 1}>กะกลางวัน <strong>Day Shift</strong></th>
+                <th style={{ ...styles.thShift, background: "#F8BBD0" }} colSpan={(nightTimes.length * 2) + 1}>กะกลางคืน <strong>Night Shift</strong></th>
                 <th style={{ ...styles.thMain }} colSpan={6}>จำนวนการจ่าย Bus cost type</th>
               </tr>
               <tr>
@@ -267,6 +292,12 @@ export default function VendorPlanPage() {
                     </div>
                   </th>
                 ))}
+                {/* Day shift vertical sum header at right */}
+                <th style={{ ...styles.thTime, background: "#FFFB0D" }} colSpan={1} title="รวมรถ">
+                  <div style={styles.timeWrap}>
+                    <div>รวมรถ</div>
+                  </div>
+                </th>
                 {nightTimes.map((dt) => (
                   <th key={`n-${dt.id}`} style={{ ...styles.thTime, background: "#F5D0D7" }} colSpan={2} title={dt.is_entry ? 'เวลาเข้า' : 'เวลาออก'}>
                     <div style={styles.timeWrap}>
@@ -277,6 +308,12 @@ export default function VendorPlanPage() {
                     </div>
                   </th>
                 ))}
+                {/* Night shift vertical sum header at right */}
+                <th style={{ ...styles.thTime, background: "#F5D0D7" }} colSpan={1} title="รวมรถ">
+                  <div style={styles.timeWrap}>
+                    <div>รวมรถ</div>
+                  </div>
+                </th>
                 <th style={styles.thPayHead} rowSpan={2}>รายเดือน</th>
                 <th style={styles.thPayHead} rowSpan={2}>จอดรอ</th>
                 <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันปกติ</th>
@@ -285,28 +322,70 @@ export default function VendorPlanPage() {
                 <th style={styles.thPayHead} rowSpan={2}>เหมาเที่ยวกะดึก</th>
               </tr>
               <tr>
-                {[...dayTimes, ...nightTimes].map((dt) => (
-                  <Fragment key={`sub-${dt.id}`}>
+                {dayTimes.map((dt) => (
+                  <Fragment key={`sub-d-${dt.id}`}>
                     <th style={styles.thSub}>คน</th>
                     <th style={styles.thSub}>รถ</th>
                   </Fragment>
                 ))}
+                {/* Day shift vertical sum subheader at right */}
+                <th key={`sub-day-sum`} style={styles.thSub}>รถ</th>
+                {nightTimes.map((dt) => (
+                  <Fragment key={`sub-n-${dt.id}`}>
+                    <th style={styles.thSub}>คน</th>
+                    <th style={styles.thSub}>รถ</th>
+                  </Fragment>
+                ))}
+                {/* Night shift vertical sum subheader at right */}
+                <th key={`sub-night-sum`} style={styles.thSub}>รถ</th>
               </tr>
             </thead>
             <tbody>
               {routes.map((r, idx) => (
                 <tr key={r.id}>
                   <td style={styles.tdRoute}><span style={styles.routeIndex}>{idx + 1}.</span> {r.name}</td>
-                  {[...dayTimes, ...nightTimes].map((dt) => {
+                  {/* Day shift per-time cells */}
+                  {dayTimes.map((dt) => {
                     const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
                     const cars = calcVehicles(people);
                     return (
-                      <Fragment key={`cell-${dt.id}-${r.id}`}>
+                      <Fragment key={`cell-d-${dt.id}-${r.id}`}>
                         <td style={styles.tdCell}>{people > 0 ? <b>{people}</b> : ""}</td>
                         <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ""}</td>
                       </Fragment>
                     );
                   })}
+                  {/* Day shift vertical sum cell at right */}
+                  {(() => {
+                    const dayCars = dayTimes.reduce((acc, dt) => {
+                      const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+                      return acc + calcVehicles(people);
+                    }, 0);
+                    return (
+                      <td style={styles.tdCell} key={`cell-day-sum-${r.id}`}>{dayCars > 0 ? <b>{dayCars} คัน</b> : ''}</td>
+                    );
+                  })()}
+                  {/* Night shift per-time cells */}
+                  {nightTimes.map((dt) => {
+                    const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+                    const cars = calcVehicles(people);
+                    return (
+                      <Fragment key={`cell-n-${dt.id}-${r.id}`}>
+                        <td style={styles.tdCell}>{people > 0 ? <b>{people}</b> : ""}</td>
+                        <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ""}</td>
+                      </Fragment>
+                    );
+                  })}
+                  {/* Night shift vertical sum cell at right */}
+                  {(() => {
+                    const nightCars = nightTimes.reduce((acc, dt) => {
+                      const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+                      return acc + calcVehicles(people);
+                    }, 0);
+                    return (
+                      <td style={styles.tdCell} key={`cell-night-sum-${r.id}`}>{nightCars > 0 ? <b>{nightCars} คัน</b> : ''}</td>
+                    );
+                  })()}
                   <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_flat')}>{(payments?.[r.id]?.pay_flat||0) || ''}</td>
                   <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_wait')}>{(payments?.[r.id]?.pay_wait||0) || ''}</td>
                   <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_normal')}>{(payments?.[r.id]?.pay_ot_normal||0) || ''}</td>
@@ -315,6 +394,40 @@ export default function VendorPlanPage() {
                   <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_trip_night')}>{(payments?.[r.id]?.pay_trip_night||0) || ''}</td>
                 </tr>
               ))}
+              {/* Totals row */}
+              <tr>
+                <td style={styles.tdTotalRoute}>รวม</td>
+                {dayTimes.map((dt) => (
+                  <Fragment key={`sum-d-${dt.id}`}>
+                    <td style={styles.tdSum}>
+                      {(totals.peopleTotals?.[dt.id] ?? 0) > 0 ? <b>{totals.peopleTotals[dt.id]}</b> : ''}
+                    </td>
+                    <td style={styles.tdSum}>
+                      {(totals.carTotals?.[dt.id] ?? 0) > 0 ? <b>{`${totals.carTotals[dt.id]} คัน`}</b> : ''}
+                    </td>
+                  </Fragment>
+                ))}
+                {/* Day shift vertical sum total at right */}
+                <td style={styles.tdSum}>{(dayTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)) > 0 ? <b>{`${dayTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)} คัน`}</b> : ''}</td>
+                {nightTimes.map((dt) => (
+                  <Fragment key={`sum-n-${dt.id}`}>
+                    <td style={styles.tdSum}>
+                      {(totals.peopleTotals?.[dt.id] ?? 0) > 0 ? <b>{totals.peopleTotals[dt.id]}</b> : ''}
+                    </td>
+                    <td style={styles.tdSum}>
+                      {(totals.carTotals?.[dt.id] ?? 0) > 0 ? <b>{`${totals.carTotals[dt.id]} คัน`}</b> : ''}
+                    </td>
+                  </Fragment>
+                ))}
+                {/* Night shift vertical sum total at right */}
+                <td style={styles.tdSum}>{(nightTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)) > 0 ? <b>{`${nightTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)} คัน`}</b> : ''}</td>
+                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_flat ?? 0) > 0 ? <b>{totals.payTotals.pay_flat}</b> : ''}</td>
+                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_wait ?? 0) > 0 ? <b>{totals.payTotals.pay_wait}</b> : ''}</td>
+                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_ot_normal ?? 0) > 0 ? <b>{totals.payTotals.pay_ot_normal}</b> : ''}</td>
+                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_trip ?? 0) > 0 ? <b>{totals.payTotals.pay_trip}</b> : ''}</td>
+                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_ot_holiday ?? 0) > 0 ? <b>{totals.payTotals.pay_ot_holiday}</b> : ''}</td>
+                <td style={styles.tdSumPay}>{(totals.payTotals?.pay_trip_night ?? 0) > 0 ? <b>{totals.payTotals.pay_trip_night}</b> : ''}</td>
+              </tr>
             </tbody>
           </table>
           </div>
@@ -379,6 +492,9 @@ const styles = {
   routeIndex: { display: "inline-block", width: 24, textAlign: "right", marginRight: 6 },
   tdCell: { border: "1px solid #e6edf3", padding: 6, minWidth: 60, height: 36, background: "#ffffff", textAlign: "center", fontSize: 12 },
   tdPay: { border: "1px solid #e6edf3", padding: 6, minWidth: 130, height: 36, background: "#ffffff", textAlign: "center", fontSize: 12 },
+  tdTotalRoute: { border: "1px solid #e6edf3", padding: 8, background: "#eef3f8", fontWeight: 900, color: "#2f3e4f", textAlign:'center' },
+  tdSum: { border: "1px solid #e6edf3", padding: 6, background: "#f8fbff", textAlign: "center", fontSize: 12, fontWeight: 800 },
+  tdSumPay: { border: "1px solid #e6edf3", padding: 6, background: "#f4f9f2", textAlign: "center", fontSize: 12, fontWeight: 800 },
   approveBtn: { padding:'10px 14px', borderRadius:10, background:'#2ecc71', color:'#fff', border:'none', fontWeight:800, cursor:'pointer' },
   cancelGrayBtn: { padding:'10px 14px', borderRadius:10, background:'#ffffff', color:'#7f8c8d', border:'1px solid #bdc3c7', fontWeight:800, cursor:'pointer' },
   lockedWrap: { opacity:0.5, pointerEvents:'none', filter:'grayscale(0.6)' },

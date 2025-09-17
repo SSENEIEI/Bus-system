@@ -12,6 +12,7 @@
   "/api/products/route": "app/api/products/route.js",
   "/api/route-pdfs/list/route": "app/api/route-pdfs/list/route.js",
   "/api/vendor/payments/route": "app/api/vendor/payments/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js",
   "/truck-table/page": "app/truck-table/page.js",
   "/vendor-plan/page": "app/vendor-plan/page.js"
