@@ -488,6 +488,15 @@ async function initDatabase(options = {}) {
     await ensureForeignKey('ot_time_hides', 'othide_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
     await ensureForeignKey('ot_time_hides', 'othide_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
     await ensureForeignKey('ot_time_hides', 'othide_user_fk', 'FOREIGN KEY (hidden_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.4.1) Global OT settings (key-value) to control behaviors like auto-hide
+    await exec(`CREATE TABLE IF NOT EXISTS ot_settings (
+    name VARCHAR(100) NOT NULL,
+    value VARCHAR(255) NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (name)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_settings', 'otsettings_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
     // 6.3) Department-level locks per date/shift/depart_time
     await exec(`CREATE TABLE IF NOT EXISTS ot_department_time_locks (
     the_date DATE NOT NULL,
@@ -804,6 +813,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$auth$2e$js__$5
 ;
 ;
 ;
+// Helper: run an action and, on missing-table errors, initialize schema then retry once
 async function withInitRetry(action) {
     try {
         return await action();
@@ -819,11 +829,13 @@ async function GET(request) {
     const { searchParams } = new URL(request.url);
     const the_date = searchParams.get('date');
     const shift_id = Number(searchParams.get('shiftId')) || null;
-    if (!the_date || !shift_id) return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-        error: 'missing date/shiftId'
-    }, {
-        status: 400
-    });
+    if (!the_date || !shift_id) {
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            error: 'missing date/shiftId'
+        }, {
+            status: 400
+        });
+    }
     const rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT depart_time_id FROM ot_time_hides WHERE the_date=? AND shift_id=?`, [
             the_date,
             shift_id
@@ -845,11 +857,13 @@ async function POST(request) {
     });
     const body = await request.json();
     const { the_date, shift_id, depart_time_ids } = body || {};
-    if (!the_date || !shift_id || !Array.isArray(depart_time_ids)) return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-        error: 'missing fields'
-    }, {
-        status: 400
-    });
+    if (!the_date || !shift_id || !Array.isArray(depart_time_ids)) {
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            error: 'missing fields'
+        }, {
+            status: 400
+        });
+    }
     // Replace all hides for that date/shift
     await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`DELETE FROM ot_time_hides WHERE the_date=? AND shift_id=?`, [
             the_date,
@@ -863,7 +877,8 @@ async function POST(request) {
                 user.id || null
             ]);
         const placeholders = values.map(()=>'(?,?,?,?)').join(',');
-        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_time_hides (the_date, shift_id, depart_time_id, hidden_by_user_id, hidden_at) VALUES ${placeholders}`, values.flat()));
+        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_time_hides (the_date, shift_id, depart_time_id, hidden_by_user_id) VALUES ${placeholders}
+       ON DUPLICATE KEY UPDATE hidden_by_user_id = VALUES(hidden_by_user_id), hidden_at = CURRENT_TIMESTAMP`, values.flat()));
     }
     return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
         ok: true,

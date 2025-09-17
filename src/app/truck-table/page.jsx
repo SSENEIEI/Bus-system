@@ -18,11 +18,16 @@ export default function TruckTable() {
   const [countsBy, setCountsBy] = useState({}); // { dtId: { routeId: { plantId: totalCount } , ttl: { routeId: total } } }
   const [carPlan, setCarPlan] = useState({}); // { dtId: { routeId: car_count } }
   const [carModal, setCarModal] = useState({ open:false, dt:null, route:null, value:0 });
+  const [hiddenDepartTimeIds, setHiddenDepartTimeIds] = useState([]); // hides loaded from server for current date+shift
+  const [autoHideEnabled, setAutoHideEnabled] = useState(false); // global toggle: auto hide empty times for all dates
   const captureRef = useRef(null);
 
   useEffect(() => {
     try { const u = JSON.parse(localStorage.getItem('user')||'null'); setUser(u); } catch {}
   }, []);
+
+  // Determine admin privilege early so effects below can depend on it safely
+  const isAdminga = useMemo(() => String(user?.username||'').toLowerCase()==='adminga', [user]);
 
   const plantOrder = useMemo(() => ['AC','RF','SSC'], []);
   const plantsSorted = useMemo(() => {
@@ -53,12 +58,47 @@ export default function TruckTable() {
 
   useEffect(() => { loadMasters(); }, []);
 
+  // Load global setting for auto hide
+  useEffect(() => {
+    (async () => {
+      const res = await fetchJSON('/api/ot/settings?name=auto_hide_empty_times');
+      const enabled = String(res?.value||'').toLowerCase()==='true';
+      setAutoHideEnabled(enabled);
+    })();
+  }, []);
+
   const loadDepartTimes = async (sid) => {
     if (!sid) return setDepartTimes([]);
     const data = await fetchJSON(`/api/ot/depart-times?shiftId=${sid}`, {}, { cache:'no-store' });
     setDepartTimes(Array.isArray(data) ? data : []);
   };
   useEffect(() => { loadDepartTimes(shiftId); }, [shiftId]);
+
+  // Load hidden depart times for current date+shift (applies to all users)
+  const loadHiddenTimes = async (sid) => {
+    if (!sid) return setHiddenDepartTimeIds([]);
+    const ids = await fetchJSON(`/api/ot/time-hides?date=${date}&shiftId=${sid}`, {}, { cache: 'no-store' });
+    setHiddenDepartTimeIds(Array.isArray(ids) ? ids : []);
+  };
+  useEffect(() => { loadHiddenTimes(shiftId); }, [date, shiftId]);
+  // If global auto hide is enabled, ensure today's date has hides computed proactively
+  useEffect(() => {
+    (async () => {
+      // Only admin (adminga) should persist hides to the server
+      if (!autoHideEnabled || !isAdminga || !Array.isArray(shifts) || !shifts.length) return;
+      try {
+        const tasks = [];
+        for (const s of shifts) {
+          // eslint-disable-next-line no-await-in-loop
+          const empties = await computeEmptyTimesForShift(s.id);
+          tasks.push(postJSON('/api/ot/time-hides', { the_date: date, shift_id: s.id, depart_time_ids: empties }));
+        }
+        await Promise.all(tasks);
+        await loadHiddenTimes(shiftId);
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoHideEnabled, isAdminga, date, JSON.stringify(shifts)]);
 
   // Aggregate per depart time -> per route -> per plant (sum across departments)
   const loadCounts = async () => {
@@ -115,7 +155,7 @@ export default function TruckTable() {
     link.click();
   };
   const handleLogout = () => { try { localStorage.removeItem('token'); localStorage.removeItem('user'); } catch {} router.push('/'); };
-  const isAdminga = useMemo(() => String(user?.username||'').toLowerCase()==='adminga', [user]);
+  
   // Night shift detection (กะกลางคืน)
   // แก้หน้างาน ให้กะกลางคืน (19:50) พื้นหลังดำ และเลื่อน 19:50 ไปซ้ายสุด และ เปลี่ยนจากเวลาออกเป็นเวลาเข้า
   //
@@ -132,7 +172,21 @@ export default function TruckTable() {
   }, [shifts, shiftId]);
   // For display: always show entry times (is_entry=1) on the left, followed by exit times
   const displayDepartTimes = useMemo(() => {
-    const list = Array.isArray(departTimes) ? [...departTimes] : [];
+    let list = Array.isArray(departTimes) ? [...departTimes] : [];
+    // Apply server-side hides for current date+shift (hidden for everyone)
+    if (Array.isArray(hiddenDepartTimeIds) && hiddenDepartTimeIds.length) {
+      const setIds = new Set(hiddenDepartTimeIds);
+      list = list.filter(dt => !setIds.has(dt.id));
+    }
+    // Auto-hide empties dynamically for this date when enabled
+    if (autoHideEnabled && countsBy && Object.keys(countsBy).length) {
+      list = list.filter(dt => {
+        const rec = countsBy[dt.id] || { ttl: {} };
+        let ttlTotal = 0;
+        for (const v of Object.values(rec.ttl || {})) ttlTotal += Number(v)||0;
+        return ttlTotal > 0; // keep only columns that have numbers
+      });
+    }
     return list.sort((a,b) => {
       const ae = Number(a?.is_entry)||0; const be = Number(b?.is_entry)||0; // entry=1 should come first
       if (ae !== be) return be - ae; // 1 before 0
@@ -140,7 +194,7 @@ export default function TruckTable() {
       const tb = String(b?.time||'');
       return ta.localeCompare(tb);
     });
-  }, [departTimes]);
+  }, [departTimes, hiddenDepartTimeIds, autoHideEnabled, countsBy]);
   //
   //
   //
@@ -164,6 +218,37 @@ export default function TruckTable() {
     }
   };
   const closeCarModal = () => setCarModal({ open:false, dt:null, route:null, value:0 });
+
+  // Compute empty depart-time ids for a shift (no numbers at all)
+  async function computeEmptyTimesForShift(targetShiftId){
+    const times = await fetchJSON(`/api/ot/depart-times?shiftId=${targetShiftId}`, {}, { cache:'no-store' }) || [];
+    const emptyIds = [];
+    for (const t of (Array.isArray(times)? times : [])) {
+      const rows = await fetchJSON(`/api/ot/counts?date=${date}&shiftId=${targetShiftId}&departTimeId=${t.id}`) || [];
+      let total = 0;
+      for (const r of (Array.isArray(rows)? rows: [])) total += Number(r.count)||0;
+      if (total === 0) emptyIds.push(t.id);
+    }
+    return emptyIds;
+  }
+
+  // Toggle: if currently hidden -> clear for both shifts; else compute empties and hide for both shifts
+  const toggleHideEmptyTimes = async () => {
+    if (!isAdminga) return;
+    try {
+      const newEnabled = !autoHideEnabled;
+      await postJSON('/api/ot/settings', { name: 'auto_hide_empty_times', value: String(newEnabled) });
+      setAutoHideEnabled(newEnabled);
+      // When turning off, clear hides for current date; when turning on, effect will compute & post
+      if (!newEnabled) {
+        // Clear hides for current date when turning off
+        await Promise.all((Array.isArray(shifts)?shifts:[]).map(s => postJSON('/api/ot/time-hides', { the_date: date, shift_id: s.id, depart_time_ids: [] })));
+      }
+      await loadHiddenTimes(shiftId);
+    } catch (e) {
+      alert(String(e?.message||e));
+    }
+  };
 
   // Greeting labels
   const welcomeText = useMemo(() => formatWelcome(user, departments, plants), [user, departments, plants]);
@@ -205,7 +290,14 @@ export default function TruckTable() {
                 {shifts.map(s => <option key={s.id} value={s.id}>{s.name_th || s.name_en}</option>)}
               </select>
             </div>
-            <button style={styles.primaryBtn} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
+            <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:10 }}>
+              <button style={{ ...styles.primaryBtn, marginLeft:0 }} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
+              {isAdminga && (
+                <button type="button" onClick={toggleHideEmptyTimes} style={{ ...styles.primaryBtn, marginLeft:0, background:'#8e44ad' }}>
+                  {autoHideEnabled ? 'ปิดซ่อนอัตโนมัติ' : 'ซ่อนอัตโนมัติ'}
+                </button>
+              )}
+            </div>
             </div>
           </div>
           {/* Panel: Table */}

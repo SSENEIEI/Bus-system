@@ -374,6 +374,29 @@ export async function initDatabase(options = {}) {
   await ensureForeignKey('ot_time_locks', 'ottime_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
   await ensureForeignKey('ot_time_locks', 'ottime_user_fk', 'FOREIGN KEY (locked_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
 
+  // 6.4) Time hides per date/shift (admin-controlled visibility of depart times)
+  await exec(`CREATE TABLE IF NOT EXISTS ot_time_hides (
+    the_date DATE NOT NULL,
+    shift_id INT NOT NULL,
+    depart_time_id INT NOT NULL,
+    hidden_by_user_id INT NULL,
+    hidden_at DATETIME NULL,
+    PRIMARY KEY (the_date, shift_id, depart_time_id)
+  ) CHARSET=utf8mb4`);
+  await ensureForeignKey('ot_time_hides', 'othide_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+  await ensureForeignKey('ot_time_hides', 'othide_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
+  await ensureForeignKey('ot_time_hides', 'othide_user_fk', 'FOREIGN KEY (hidden_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
+
+  // 6.4.1) Global OT settings (key-value) to control behaviors like auto-hide
+  await exec(`CREATE TABLE IF NOT EXISTS ot_settings (
+    name VARCHAR(100) NOT NULL,
+    value VARCHAR(255) NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (name)
+  ) CHARSET=utf8mb4`);
+  await ensureForeignKey('ot_settings', 'otsettings_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+
   // 6.3) Department-level locks per date/shift/depart_time
   await exec(`CREATE TABLE IF NOT EXISTS ot_department_time_locks (
     the_date DATE NOT NULL,
