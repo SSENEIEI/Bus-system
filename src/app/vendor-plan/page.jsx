@@ -1,0 +1,375 @@
+"use client";
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
+import { useRouter } from "next/navigation";
+import html2canvas from "html2canvas";
+import { formatWelcome } from '@/lib/formatters';
+
+// แผนจัดรถ (สำหรับ Vendor)
+// โครงสร้างหน้าคล้ายหน้าอื่น: มีหัวข้อ, ปุ่มบันทึกรูปภาพ, ออกจากระบบ, เลือกวันที่ และตารางใหญ่
+export default function VendorPlanPage() {
+  const router = useRouter();
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [user, setUser] = useState(null);
+  const [routes, setRoutes] = useState([]); // [{id, name}]
+  const [plants, setPlants] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [shifts, setShifts] = useState([]); // [{id, name_th, name_en}]
+  const [departTimesByShift, setDepartTimesByShift] = useState({}); // { shiftId: [{id, time}] }
+  const [countsByDepartTime, setCountsByDepartTime] = useState({}); // { dtId: { routeId: people } }
+  const captureRef = useRef(null);
+  const [payments, setPayments] = useState({}); // { routeId: { pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night } }
+  const [editModal, setEditModal] = useState({ open:false, route:null, key:null, value:'' });
+  const [lockInfo, setLockInfo] = useState({ the_date:null, is_locked:0 });
+  const isAdminga = useMemo(() => String(user?.username||'').toLowerCase()==='adminga', [user]);
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "null");
+      setUser(u);
+    } catch {}
+  }, []);
+
+  // Helper: pick day/night shift ids by name
+  const dayNightShiftIds = useMemo(() => {
+    if (!Array.isArray(shifts) || shifts.length === 0) return { day: null, night: null };
+    let day = null; let night = null;
+    for (const s of shifts) {
+      const th = (s.name_th || "").toLowerCase();
+      const en = (s.name_en || "").toLowerCase();
+      if (!day && (th.includes("กลางวัน") || en.includes("day"))) day = s.id;
+      if (!night && (th.includes("กลางคืน") || en.includes("night"))) night = s.id;
+    }
+    // fallback: first=day second=night
+    if (!day) day = shifts[0]?.id ?? null;
+    if (!night) night = shifts.find((x) => x.id !== day)?.id ?? null;
+    return { day, night };
+  }, [shifts]);
+
+  // Load master data
+  useEffect(() => {
+    const loadMasters = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [r, s, p, d] = await Promise.all([
+          fetch("/api/ot/routes"),
+          fetch("/api/ot/shifts", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/ot/plants", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/ot/departments", { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        const [routesRows, shiftsRows, plantRows, deptRows] = await Promise.all([
+          r.json().catch(() => []),
+          s.json().catch(() => []),
+          p.json().catch(() => []),
+          d.json().catch(() => []),
+        ]);
+        setRoutes(Array.isArray(routesRows) ? routesRows : []);
+        const sh = Array.isArray(shiftsRows) ? shiftsRows : [];
+        setShifts(sh);
+        setPlants(Array.isArray(plantRows) ? plantRows : []);
+        setDepartments(Array.isArray(deptRows) ? deptRows : []);
+      } catch (e) {
+        setRoutes([]); setShifts([]); setPlants([]); setDepartments([]);
+      }
+    };
+    loadMasters();
+  }, []);
+
+  // Load depart times for both day and night
+  useEffect(() => {
+    const loadDepartTimes = async () => {
+      if (!dayNightShiftIds.day && !dayNightShiftIds.night) return setDepartTimesByShift({});
+      const token = localStorage.getItem("token");
+      const acc = {};
+      for (const sid of [dayNightShiftIds.day, dayNightShiftIds.night].filter(Boolean)) {
+        try {
+          const res = await fetch(`/api/ot/depart-times?shiftId=${sid}`, { headers: { Authorization: `Bearer ${token}` } });
+          const rows = await res.json().catch(() => []);
+          acc[sid] = (Array.isArray(rows) ? rows : []).sort((a, b) => String(a.time).localeCompare(String(b.time)));
+        } catch {
+          acc[sid] = [];
+        }
+      }
+      setDepartTimesByShift(acc);
+    };
+    loadDepartTimes();
+  }, [dayNightShiftIds.day, dayNightShiftIds.night]);
+
+  // Load aggregate counts per depart time (sum across plants/departments)
+  useEffect(() => {
+    const loadCounts = async () => {
+      const token = localStorage.getItem("token");
+      const acc = {};
+      const allDts = [
+        ...(departTimesByShift[dayNightShiftIds.day] || []),
+        ...(departTimesByShift[dayNightShiftIds.night] || []),
+      ];
+      for (const dt of allDts) {
+        try {
+          const res = await fetch(`/api/ot/counts?date=${date}&shiftId=${dt.shift_id || dayNightShiftIds.day}&departTimeId=${dt.id}`, { headers: { Authorization: `Bearer ${token}` } });
+          const rows = await res.json().catch(() => []);
+          const map = {}; // { routeId: totalPeople }
+          for (const row of (Array.isArray(rows) ? rows : [])) {
+            const rId = row.route_id; const c = Number(row.count) || 0;
+            map[rId] = (map[rId] || 0) + c; // sum across departments
+          }
+          acc[dt.id] = map;
+        } catch {
+          acc[dt.id] = {};
+        }
+      }
+      setCountsByDepartTime(acc);
+    };
+    loadCounts();
+  }, [date, departTimesByShift, dayNightShiftIds.day, dayNightShiftIds.night]);
+
+  // Load vendor payments for the date
+  useEffect(() => {
+    const loadPayments = async () => {
+      try {
+        const res = await fetch(`/api/vendor/payments?date=${date}`);
+        const rows = await res.json().catch(()=>[]);
+        const map = {};
+        for (const r of (Array.isArray(rows)?rows:[])) {
+          map[r.route_id] = {
+            pay_flat: Number(r.pay_flat)||0,
+            pay_wait: Number(r.pay_wait)||0,
+            pay_ot_normal: Number(r.pay_ot_normal)||0,
+            pay_trip: Number(r.pay_trip)||0,
+            pay_ot_holiday: Number(r.pay_ot_holiday)||0,
+            pay_trip_night: Number(r.pay_trip_night)||0
+          };
+        }
+        setPayments(map);
+      } catch { setPayments({}); }
+    };
+    loadPayments();
+  }, [date]);
+
+  // Load lock for the selected date (shared with other pages)
+  useEffect(()=>{(async()=>{ try { const res=await fetch(`/api/ot/locks?date=${date}`); const data=await res.json(); setLockInfo(data||{ the_date:date, is_locked:0 }); } catch { setLockInfo({ the_date:date, is_locked:0 }); } })();}, [date]);
+
+  // Lock/unlock similar to other pages
+  const toggleLock = async (force) => {
+    const next = typeof force==='boolean' ? (force?1:0) : (lockInfo?.is_locked?0:1);
+    setLockInfo(prev=>({ ...(prev||{}), the_date: date, is_locked: next }));
+    if (next) { setEditModal({ open:false, route:null, key:null, value:'' }); }
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/ot/locks', { method:'POST', headers:{ 'Content-Type':'application/json', ...(token?{ Authorization:`Bearer ${token}` }:{}) }, body: JSON.stringify({ the_date: date, is_locked: next }) });
+      if (!res.ok) throw new Error('lock save failed');
+    } catch {
+      // revert on failure
+      setLockInfo(prev=>({ ...(prev||{}), is_locked: next?0:1 }));
+    }
+  };
+
+  const openEdit = (route, key) => {
+    const current = payments?.[route.id]?.[key] ?? 0;
+    setEditModal({ open:true, route, key, value: String(current) });
+  };
+  const closeEdit = () => setEditModal({ open:false, route:null, key:null, value:'' });
+  const saveEdit = async () => {
+    if (!editModal.open || !editModal.route || !editModal.key) return;
+    try {
+      const token = localStorage.getItem('token');
+      const body = { the_date: date, route_id: editModal.route.id, key: editModal.key, value: Math.max(0, Number(editModal.value)||0) };
+      const res = await fetch('/api/vendor/payments', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'บันทึกไม่สำเร็จ');
+      setPayments(prev => ({
+        ...prev,
+        [editModal.route.id]: { ...(prev[editModal.route.id]||{}), [editModal.key]: body.value }
+      }));
+      closeEdit();
+    } catch (e) { alert(String(e.message||e)); }
+  };
+
+  const calcVehicles = (people) => {
+    const n = Number(people) || 0;
+    if (n <= 6) return 0; // ตามตรรกะเดียวกับตารางจัดรถ
+    return Math.ceil(n / 50);
+  };
+
+  const handleSaveAsImage = async () => {
+    if (!captureRef.current) return;
+    const canvas = await html2canvas(captureRef.current);
+    const link = document.createElement("a");
+    link.download = `vendor-plan-${date}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch {}
+    router.push("/");
+  };
+
+  const dayTimes = (departTimesByShift[dayNightShiftIds.day] || []);
+  const nightTimes = (departTimesByShift[dayNightShiftIds.night] || []);
+
+  const welcomeText = useMemo(() => formatWelcome(user, departments, plants), [user, departments, plants]);
+
+  return (
+    <div style={styles.wrapper}>
+      <div style={styles.stack} ref={captureRef}>
+        {/* Panel: Header */}
+        <div style={{ ...styles.panelCard, paddingBottom: 16 }}>
+          <div style={styles.headerRow}>
+          <div>
+            <h1 style={styles.title}>แผนจัดรถ</h1>
+            <div style={{ color: "#2f3e4f", fontWeight: 600 }}>ยินดีต้อนรับ, {welcomeText}</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontSize: 18, color: "#2f3e4f" }}>
+              {new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+            </div>
+            <button onClick={()=>router.push('/')} style={{ ...styles.logoutBtn, background:'#34495e' }}>กลับเมนูหลัก</button>
+            <button onClick={handleLogout} style={styles.logoutBtn}>ออกจากระบบ</button>
+          </div>
+          </div>
+        </div>
+        {/* Panel: Controls */}
+        <div style={{ ...styles.panelCard, paddingTop: 16 }}>
+          <div style={styles.controls}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={styles.label}>เลือกวันที่:</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={styles.input} />
+          </div>
+          <button style={styles.primaryBtn} onClick={handleSaveAsImage}>บันทึกรูปภาพ</button>
+          </div>
+        </div>
+        {/* Panel: Table */}
+        <div style={{ ...styles.panelCardTight }}>
+          <div style={{ width: "100%", overflowX: "auto", ...(lockInfo?.is_locked ? styles.lockedWrap : {}) }}>
+            <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={{ ...styles.thMain, width: 240 }} rowSpan={3}>สายรถ</th>
+                <th style={{ ...styles.thShift, background: "#FFEB3B" }} colSpan={dayTimes.length * 2}>กะกลางวัน <strong>Day Shift</strong></th>
+                <th style={{ ...styles.thShift, background: "#F8BBD0" }} colSpan={nightTimes.length * 2}>กะกลางคืน <strong>Night Shift</strong></th>
+                <th style={{ ...styles.thMain }} colSpan={6}>จำนวนการจ่าย Bus cost type</th>
+              </tr>
+              <tr>
+                {dayTimes.map((dt) => (
+                  <th key={`d-${dt.id}`} style={{ ...styles.thTime, background: "#FFFB0D" }} colSpan={2}>
+                    {String(dt.time).slice(0, 5)}
+                  </th>
+                ))}
+                {nightTimes.map((dt) => (
+                  <th key={`n-${dt.id}`} style={{ ...styles.thTime, background: "#F5D0D7" }} colSpan={2}>
+                    {String(dt.time).slice(0, 5)}
+                  </th>
+                ))}
+                <th style={styles.thPayHead} rowSpan={2}>รายเดือน</th>
+                <th style={styles.thPayHead} rowSpan={2}>จอดรอ</th>
+                <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันปกติ</th>
+                <th style={styles.thPayHead} rowSpan={2}>เหมาเที่ยว</th>
+                <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันหยุด</th>
+                <th style={styles.thPayHead} rowSpan={2}>เหมาเที่ยวกะดึก</th>
+              </tr>
+              <tr>
+                {[...dayTimes, ...nightTimes].map((dt) => (
+                  <Fragment key={`sub-${dt.id}`}>
+                    <th style={styles.thSub}>คน</th>
+                    <th style={styles.thSub}>รถ</th>
+                  </Fragment>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {routes.map((r, idx) => (
+                <tr key={r.id}>
+                  <td style={styles.tdRoute}><span style={styles.routeIndex}>{idx + 1}.</span> {r.name}</td>
+                  {[...dayTimes, ...nightTimes].map((dt) => {
+                    const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
+                    const cars = calcVehicles(people);
+                    return (
+                      <Fragment key={`cell-${dt.id}-${r.id}`}>
+                        <td style={styles.tdCell}>{people > 0 ? <b>{people}</b> : ""}</td>
+                        <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ""}</td>
+                      </Fragment>
+                    );
+                  })}
+                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_flat')}>{(payments?.[r.id]?.pay_flat||0) || ''}</td>
+                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_wait')}>{(payments?.[r.id]?.pay_wait||0) || ''}</td>
+                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_normal')}>{(payments?.[r.id]?.pay_ot_normal||0) || ''}</td>
+                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_trip')}>{(payments?.[r.id]?.pay_trip||0) || ''}</td>
+                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_holiday')}>{(payments?.[r.id]?.pay_ot_holiday||0) || ''}</td>
+                  <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_trip_night')}>{(payments?.[r.id]?.pay_trip_night||0) || ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+          {isAdminga && (
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:12, padding:'12px 16px' }}>
+              <button style={styles.approveBtn} onClick={()=>toggleLock(true)}>บันทึกข้อมูล</button>
+              <button style={styles.cancelGrayBtn} onClick={()=>toggleLock(false)}>ยกเลิก</button>
+            </div>
+          )}
+        </div>
+        {editModal.open && (
+          <>
+            <div style={styles.overlay} onClick={closeEdit} />
+            <div style={styles.modal} onClick={(e)=>e.stopPropagation()}>
+              <h2 style={styles.modalTitle}>แก้ไขจำนวนการจ่าย</h2>
+              <div style={{ marginBottom:10, color:'#2c3e50' }}>
+                สายรถ: <strong>{editModal.route?.name}</strong>
+              </div>
+              <div style={styles.modalFormGroup}>
+                <label style={styles.modalLabel}>จำนวน:</label>
+                <input type="number" min={0} value={editModal.value}
+                  onChange={(e)=> setEditModal(m=>({ ...m, value: e.target.value }))}
+                  onKeyDown={(e)=>{ if (e.key==='Enter') saveEdit(); }}
+                  style={styles.modalInput} autoFocus />
+              </div>
+              <div style={styles.modalButtonGroup}>
+                <button style={styles.confirmButton} onClick={saveEdit}>บันทึก</button>
+                <button style={styles.cancelButton} onClick={closeEdit}>ยกเลิก</button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  wrapper: { minHeight: "100vh", background: "#f0f2f5", padding: 20 },
+  // stack and panel layout
+  stack: { display:'flex', flexDirection:'column', gap:16, width:'100%', maxWidth:1340, margin:'0 auto' },
+  panelCard: { background: "#fff", borderRadius: 24, width: "100%", padding: 24, boxShadow: "0 8px 30px rgba(0,0,0,0.12)" },
+  panelCardTight: { background: "#fff", borderRadius: 24, width: "100%", padding: 0, boxShadow: "0 8px 30px rgba(0,0,0,0.12)", overflow: 'hidden' },
+  headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  title: { fontSize: 28, fontWeight: 900, margin: 0, color: "#2f3e4f" },
+  controls: { display: "flex", alignItems: "center", gap: 16, background: "#f7f9fb", borderRadius: 14, padding: 12, marginBottom: 14, flexWrap: "wrap" },
+  label: { fontWeight: 700, color: "#2f3e4f" },
+  input: { padding: "10px 12px", borderRadius: 10, border: "1px solid #bdc3c7", background: "#fff", fontSize: 16, minWidth: 120 },
+  primaryBtn: { padding: "10px 14px", borderRadius: 10, background: "#1f8ef1", color: "#fff", border: "none", fontWeight: 800, cursor: "pointer", marginLeft: "auto" },
+  logoutBtn: { padding: "8px 12px", borderRadius: 10, background: "#e74c3c", color: "#fff", border: "none", fontWeight: 800, cursor: "pointer" },
+  table: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" },
+  thMain: { background: "#102a3b", color: "#fff", padding: 8, textAlign: "center", fontWeight: 900, whiteSpace: "nowrap", fontSize: 12, border: "1px solid #e6edf3" },
+  thShift: { color: "#0f2a40", padding: 8, textAlign: "center", fontWeight: 900, fontSize: 14, border: "1px solid #e6edf3", whiteSpace: 'nowrap' },
+  thTime: { color: "#0f2a40", padding: 8, textAlign: "center", fontWeight: 900, fontSize: 14, border: "1px solid #e6edf3", whiteSpace: 'nowrap' },
+  thPayHead: { background: "#102a3b", color: "#fff", padding: 8, textAlign: "center", fontWeight: 900, fontSize: 12, border: "1px solid #e6edf3", whiteSpace: 'normal', lineHeight: 1.25, minWidth: 120 },
+  thSub: { background: "#17344f", color: "#fff", padding: 8, textAlign: "center", fontWeight: 800, fontSize: 12, border: "1px solid #e6edf3", whiteSpace: 'nowrap' },
+  tdRoute: { border: "1px solid #dfe6ee", padding: 8, fontWeight: 800, color: "#2f3e4f", width: 240, background: "#ffffff", fontSize: 13, whiteSpace: "nowrap" },
+  routeIndex: { display: "inline-block", width: 24, textAlign: "right", marginRight: 6 },
+  tdCell: { border: "1px solid #e6edf3", padding: 6, minWidth: 60, height: 36, background: "#ffffff", textAlign: "center", fontSize: 12 },
+  tdPay: { border: "1px solid #e6edf3", padding: 6, minWidth: 130, height: 36, background: "#ffffff", textAlign: "center", fontSize: 12 },
+  approveBtn: { padding:'10px 14px', borderRadius:10, background:'#2ecc71', color:'#fff', border:'none', fontWeight:800, cursor:'pointer' },
+  cancelGrayBtn: { padding:'10px 14px', borderRadius:10, background:'#ffffff', color:'#7f8c8d', border:'1px solid #bdc3c7', fontWeight:800, cursor:'pointer' },
+  lockedWrap: { opacity:0.5, pointerEvents:'none', filter:'grayscale(0.6)' },
+  overlay: { position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1000 },
+  modal: { background:'#fff', padding:30, borderRadius:12, boxShadow:'0 10px 30px rgba(0,0,0,0.2)', width:'90%', maxWidth:420, zIndex:1001, position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)' },
+  modalTitle: { fontSize:22, fontWeight:600, color:'#2c3e50', marginBottom:20, textAlign:'center' },
+  modalFormGroup: { marginBottom:15 },
+  modalLabel: { display:'block', marginBottom:5, fontWeight:500, color:'#34495e' },
+  modalInput: { width:'100%', padding:10, borderRadius:8, border:'1px solid #bdc3c7', boxSizing:'border-box' },
+  modalButtonGroup: { display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 },
+  confirmButton: { padding:'12px 20px', border:'none', borderRadius:8, backgroundColor:'#2ecc71', color:'#fff', fontWeight:600, cursor:'pointer' },
+  cancelButton: { padding:'12px 20px', border:'1px solid #bdc3c7', borderRadius:8, backgroundColor:'transparent', color:'#7f8c8d', fontWeight:600, cursor:'pointer' },
+};
