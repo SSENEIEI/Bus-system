@@ -3,6 +3,11 @@ import { promises as fs } from "fs";
 import path from "path";
 import { put } from "@vercel/blob";
 
+// Ensure this route runs on the Node.js runtime (not Edge)
+export const runtime = 'nodejs';
+// Optional: give a bit more time for blob uploads on slower networks
+export const maxDuration = 60;
+
 export async function POST(request) {
   try {
     const { routeKey, column, base64 } = await request.json();
@@ -14,17 +19,41 @@ export async function POST(request) {
     const cleaned = base64.replace(/^data:application\/pdf;?base64,/, "");
     const buffer = Buffer.from(cleaned, "base64");
 
+    // Enforce a sensible max size (10 MB) to prevent oversized payloads
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (buffer.byteLength > MAX_BYTES) {
+      return NextResponse.json(
+        { error: "ไฟล์ใหญ่เกินไป (เกิน 10 MB)" },
+        { status: 413 }
+      );
+    }
+
     const isProd = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     const filename = `${routeKey}-${column}.pdf`;
 
     if (isProd) {
       // Persist to Vercel Blob in production
-      const blob = await put(`route-pdfs/${filename}`, buffer, {
-        access: 'public',
-        contentType: 'application/pdf',
-        addRandomSuffix: false,
-      });
-      return NextResponse.json({ ok: true, url: blob.url });
+      try {
+        const blob = await put(`route-pdfs/${filename}`, buffer, {
+          access: 'public',
+          contentType: 'application/pdf',
+          addRandomSuffix: false,
+          // If a token is present, the SDK will use it; otherwise Vercel will
+          // inject credentials automatically when the project is linked to a Blob store.
+          token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
+        return NextResponse.json({ ok: true, url: blob.url });
+      } catch (e) {
+        const msg = String(e?.message || e);
+        console.error("Vercel Blob put() failed:", msg);
+        if (msg.match(/not connected to any Blob stores|No\s+store\s+configured|permission|Unauthorized/i)) {
+          return NextResponse.json(
+            { error: "โปรเจกต์ยังไม่ได้เชื่อม Blob Store หรือ token ไม่มีสิทธิ์" },
+            { status: 500 }
+          );
+        }
+        throw e; // handled by outer catch
+      }
     } else {
       // Local dev: write to public folder
       const dir = path.join(process.cwd(), "public", "route-pdfs");
@@ -36,6 +65,11 @@ export async function POST(request) {
     }
   } catch (err) {
     console.error("Save route PDF error:", err);
-    return NextResponse.json({ error: "บันทึกไฟล์ไม่สำเร็จ" }, { status: 500 });
+    const status = err?.status || 500;
+    const message =
+      err?.message?.includes("BLOB_READ_WRITE_TOKEN")
+        ? "เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า BLOB_READ_WRITE_TOKEN"
+        : "บันทึกไฟล์ไม่สำเร็จ";
+    return NextResponse.json({ error: message }, { status });
   }
 }
