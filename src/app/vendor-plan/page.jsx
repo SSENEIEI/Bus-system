@@ -380,7 +380,7 @@ export default function VendorPlanPage() {
                     const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
                     return (
                       <Fragment key={`cell-d-${dt.id}-${r.id}`}>
-                        <td style={styles.tdCell}>{people > 0 ? <b>{people}</b> : ""}</td>
+                        <td style={styles.tdCell}>{people > 0 ? <span>{people}</span> : ""}</td>
                         <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ""}</td>
                       </Fragment>
                     );
@@ -404,7 +404,7 @@ export default function VendorPlanPage() {
                     const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
                     return (
                       <Fragment key={`cell-n-${dt.id}-${r.id}`}>
-                        <td style={styles.tdCell}>{people > 0 ? <b>{people}</b> : ""}</td>
+                        <td style={styles.tdCell}>{people > 0 ? <span>{people}</span> : ""}</td>
                         <td style={styles.tdCell}>{cars > 0 ? <b>{cars} คัน</b> : ""}</td>
                       </Fragment>
                     );
