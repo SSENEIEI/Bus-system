@@ -10,6 +10,11 @@ import mysql from 'mysql2/promise';
 
 let pool; // cached across hot reloads (Next.js dev) and lambda invocations
 
+function resetPool() {
+  try { pool?.end?.(); } catch {}
+  pool = undefined;
+}
+
 const isProd = process.env.NODE_ENV === 'production';
 // Prefer local DB when developing unless explicitly overridden
 const preferLocal = process.env.DB_PREFER_LOCAL === 'true' || !isProd;
@@ -51,6 +56,9 @@ export function getPool() {
   database: process.env.DB_DATABASE || 'Bus-system',
         ...(useSSL ? { ssl: { rejectUnauthorized: true, minVersion: 'TLSv1.2', servername: process.env.DB_HOST }, timezone: 'Z' } : {}),
         waitForConnections: true,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0,
+        connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT || 15000),
         connectionLimit,
         queueLimit: 0
       });
@@ -64,6 +72,9 @@ export function getPool() {
         password: '', // default password : 'admin1234'
   database: 'Bus-system',
         waitForConnections: true,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0,
+        connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT || 15000),
         connectionLimit,
         queueLimit: 0
       });
@@ -74,8 +85,27 @@ export function getPool() {
 
 // Simple query helper
 export async function query(sql, params = []) {
-  const [rows] = await getPool().execute(sql, params);
-  return rows;
+  try {
+    const [rows] = await getPool().execute(sql, params);
+    return rows;
+  } catch (err) {
+    const code = err?.code || '';
+    const msg = String(err?.message || '');
+    const transient = (
+      code === 'PROTOCOL_CONNECTION_LOST' ||
+      code === 'ECONNRESET' ||
+      code === 'ETIMEDOUT' ||
+      code === 'EPIPE' ||
+      /Server has gone away|Lost connection|read ECONNRESET/i.test(msg)
+    );
+    if (transient) {
+      // Recreate pool once and retry
+      resetPool();
+      const [rows] = await getPool().execute(sql, params);
+      return rows;
+    }
+    throw err;
+  }
 }
 
 // Health check (can be used in an /api/health route)
