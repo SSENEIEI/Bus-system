@@ -1769,29 +1769,83 @@ export default function Home() {
     const onFileChange = (e) => setUploadModal((m) => ({ ...m, file: e.target.files?.[0] || null }));
     const savePdf = async () => {
       if (!uploadModal.file) return;
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64 = reader.result;
-          const res = await fetch('/api/route-pdfs/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ routeKey: uploadModal.routeKey, column: uploadModal.column, base64 })
-          });
-          const data = await res.json();
-          if (res.ok) {
-            const k = `${uploadModal.routeKey}-${uploadModal.column}`;
-            setRoutePdfs((prev) => ({ ...prev, [k]: data.url }));
-            setRoutePdfsUpdatedAt(Date.now());
-            setUploadModal({ open: false, routeKey: null, column: null, file: null });
-          } else {
-            alert(data.error || 'อัปโหลดไม่สำเร็จ');
+      const file = uploadModal.file;
+      try {
+        // Step 1: ask server for a signed upload URL (prod only)
+        const urlRes = await fetch('/api/route-pdfs/upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ routeKey: uploadModal.routeKey, column: uploadModal.column, contentType: file.type || 'application/pdf' }),
+        });
+        const urlData = await urlRes.json().catch(() => ({}));
+
+        if (urlRes.ok && urlData?.url && urlData?.token) {
+          // Step 2: upload directly to Blob from client
+          const uploadOnce = async () => {
+            const putRes = await fetch(urlData.url, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/pdf',
+                'x-vercel-blob-token': urlData.token,
+              },
+              body: file,
+            });
+            if (!putRes.ok) {
+              throw new Error(`Blob upload failed ${putRes.status}`);
+            }
+          };
+
+          try {
+            await uploadOnce();
+          } catch (e) {
+            // one quick retry for transient network issues
+            await uploadOnce();
           }
-        } catch (err) {
-          alert('เกิดข้อผิดพลาด');
+
+          // Upload succeeded; refresh list shortly to pick up new blob
+          // Refresh map by calling list endpoint after a short delay
+          setTimeout(async () => {
+            try {
+              const listRes = await fetch('/api/route-pdfs/list');
+              const listData = await listRes.json();
+              if (listRes.ok && listData?.map) {
+                setRoutePdfs(listData.map);
+                setRoutePdfsUpdatedAt(listData.lastUpdated || Date.now());
+              }
+            } catch {}
+          }, 300);
+
+          setUploadModal({ open: false, routeKey: null, column: null, file: null });
+          return;
         }
-      };
-      reader.readAsDataURL(uploadModal.file);
+
+        // Fallback (dev or when signed URL unsupported): use existing server API which writes to fs or blob
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result;
+            const res = await fetch('/api/route-pdfs/save', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ routeKey: uploadModal.routeKey, column: uploadModal.column, base64 })
+            });
+            const data = await res.json();
+            if (res.ok) {
+              const k = `${uploadModal.routeKey}-${uploadModal.column}`;
+              setRoutePdfs((prev) => ({ ...prev, [k]: data.url }));
+              setRoutePdfsUpdatedAt(Date.now());
+              setUploadModal({ open: false, routeKey: null, column: null, file: null });
+            } else {
+              alert(data.error || 'อัปโหลดไม่สำเร็จ');
+            }
+          } catch (err) {
+            alert('เกิดข้อผิดพลาด');
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch (err) {
+        alert('อัปโหลดไม่สำเร็จ');
+      }
     };
 
     return (
