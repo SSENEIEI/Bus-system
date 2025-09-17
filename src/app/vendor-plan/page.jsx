@@ -84,7 +84,12 @@ export default function VendorPlanPage() {
         try {
           const res = await fetch(`/api/ot/depart-times?shiftId=${sid}`, { headers: { Authorization: `Bearer ${token}` } });
           const rows = await res.json().catch(() => []);
-          acc[sid] = (Array.isArray(rows) ? rows : []).sort((a, b) => String(a.time).localeCompare(String(b.time)));
+          // Ensure entry times appear on the left of the shift group: sort by is_entry DESC, then time ASC
+          acc[sid] = (Array.isArray(rows) ? rows : []).sort((a, b) => {
+            const ie = (Number(b?.is_entry||0) - Number(a?.is_entry||0));
+            if (ie !== 0) return ie; // entries (1) first
+            return String(a.time).localeCompare(String(b.time));
+          });
         } catch {
           acc[sid] = [];
         }
@@ -253,13 +258,23 @@ export default function VendorPlanPage() {
               </tr>
               <tr>
                 {dayTimes.map((dt) => (
-                  <th key={`d-${dt.id}`} style={{ ...styles.thTime, background: "#FFFB0D" }} colSpan={2}>
-                    {String(dt.time).slice(0, 5)}
+                  <th key={`d-${dt.id}`} style={{ ...styles.thTime, background: "#FFFB0D" }} colSpan={2} title={dt.is_entry ? 'เวลาเข้า' : 'เวลาออก'}>
+                    <div style={styles.timeWrap}>
+                      <div>{String(dt.time).slice(0, 5)}</div>
+                      <div style={{...styles.timePill, ...(dt.is_entry ? styles.timePillEntry : styles.timePillExit)}}>
+                        {dt.is_entry ? 'เข้า' : 'ออก'}
+                      </div>
+                    </div>
                   </th>
                 ))}
                 {nightTimes.map((dt) => (
-                  <th key={`n-${dt.id}`} style={{ ...styles.thTime, background: "#F5D0D7" }} colSpan={2}>
-                    {String(dt.time).slice(0, 5)}
+                  <th key={`n-${dt.id}`} style={{ ...styles.thTime, background: "#F5D0D7" }} colSpan={2} title={dt.is_entry ? 'เวลาเข้า' : 'เวลาออก'}>
+                    <div style={styles.timeWrap}>
+                      <div>{String(dt.time).slice(0, 5)}</div>
+                      <div style={{...styles.timePill, ...(dt.is_entry ? styles.timePillEntry : styles.timePillExit)}}>
+                        {dt.is_entry ? 'เข้า' : 'ออก'}
+                      </div>
+                    </div>
                   </th>
                 ))}
                 <th style={styles.thPayHead} rowSpan={2}>รายเดือน</th>
@@ -354,6 +369,10 @@ const styles = {
   thMain: { background: "#102a3b", color: "#fff", padding: 8, textAlign: "center", fontWeight: 900, whiteSpace: "nowrap", fontSize: 12, border: "1px solid #e6edf3" },
   thShift: { color: "#0f2a40", padding: 8, textAlign: "center", fontWeight: 900, fontSize: 14, border: "1px solid #e6edf3", whiteSpace: 'nowrap' },
   thTime: { color: "#0f2a40", padding: 8, textAlign: "center", fontWeight: 900, fontSize: 14, border: "1px solid #e6edf3", whiteSpace: 'nowrap' },
+  timeWrap: { display:'flex', flexDirection:'column', alignItems:'center', gap:4, lineHeight:1.1 },
+  timePill: { fontSize:10, padding:'2px 6px', borderRadius:999, fontWeight:800, color:'#0f2a40', background:'#eef5ff', border:'1px solid #cfe0f7' },
+  timePillEntry: { background:'#e9f9ed', border:'1px solid #bfe8cb', color:'#1b7b3a' },
+  timePillExit: { background:'#fff2e9', border:'1px solid #ffd3b5', color:'#b04e06' },
   thPayHead: { background: "#102a3b", color: "#fff", padding: 8, textAlign: "center", fontWeight: 900, fontSize: 12, border: "1px solid #e6edf3", whiteSpace: 'normal', lineHeight: 1.25, minWidth: 120 },
   thSub: { background: "#17344f", color: "#fff", padding: 8, textAlign: "center", fontWeight: 800, fontSize: 12, border: "1px solid #e6edf3", whiteSpace: 'nowrap' },
   tdRoute: { border: "1px solid #dfe6ee", padding: 8, fontWeight: 800, color: "#2f3e4f", width: 240, background: "#ffffff", fontSize: 13, whiteSpace: "nowrap" },

@@ -1,0 +1,1037 @@
+module.exports = [
+"[project]/.next-internal/server/app/api/ot/locks/route/actions.js [app-rsc] (server actions loader, ecmascript)", ((__turbopack_context__, module, exports) => {
+
+}),
+"[externals]/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js [external] (next/dist/compiled/next-server/app-route-turbo.runtime.dev.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/compiled/next-server/app-route-turbo.runtime.dev.js", () => require("next/dist/compiled/next-server/app-route-turbo.runtime.dev.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/compiled/@opentelemetry/api [external] (next/dist/compiled/@opentelemetry/api, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/compiled/@opentelemetry/api", () => require("next/dist/compiled/@opentelemetry/api"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js [external] (next/dist/compiled/next-server/app-page-turbo.runtime.dev.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/compiled/next-server/app-page-turbo.runtime.dev.js", () => require("next/dist/compiled/next-server/app-page-turbo.runtime.dev.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/server/app-render/work-unit-async-storage.external.js [external] (next/dist/server/app-render/work-unit-async-storage.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/server/app-render/work-unit-async-storage.external.js", () => require("next/dist/server/app-render/work-unit-async-storage.external.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/server/app-render/work-async-storage.external.js [external] (next/dist/server/app-render/work-async-storage.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/server/app-render/work-async-storage.external.js", () => require("next/dist/server/app-render/work-async-storage.external.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/shared/lib/no-fallback-error.external.js [external] (next/dist/shared/lib/no-fallback-error.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/shared/lib/no-fallback-error.external.js", () => require("next/dist/shared/lib/no-fallback-error.external.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/server/app-render/after-task-async-storage.external.js [external] (next/dist/server/app-render/after-task-async-storage.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/server/app-render/after-task-async-storage.external.js", () => require("next/dist/server/app-render/after-task-async-storage.external.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/server/app-render/action-async-storage.external.js [external] (next/dist/server/app-render/action-async-storage.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/server/app-render/action-async-storage.external.js", () => require("next/dist/server/app-render/action-async-storage.external.js"));
+
+module.exports = mod;
+}),
+"[externals]/events [external] (events, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("events", () => require("events"));
+
+module.exports = mod;
+}),
+"[externals]/process [external] (process, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("process", () => require("process"));
+
+module.exports = mod;
+}),
+"[externals]/net [external] (net, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("net", () => require("net"));
+
+module.exports = mod;
+}),
+"[externals]/tls [external] (tls, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("tls", () => require("tls"));
+
+module.exports = mod;
+}),
+"[externals]/timers [external] (timers, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("timers", () => require("timers"));
+
+module.exports = mod;
+}),
+"[externals]/stream [external] (stream, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("stream", () => require("stream"));
+
+module.exports = mod;
+}),
+"[externals]/buffer [external] (buffer, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("buffer", () => require("buffer"));
+
+module.exports = mod;
+}),
+"[externals]/string_decoder [external] (string_decoder, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("string_decoder", () => require("string_decoder"));
+
+module.exports = mod;
+}),
+"[externals]/crypto [external] (crypto, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("crypto", () => require("crypto"));
+
+module.exports = mod;
+}),
+"[externals]/zlib [external] (zlib, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("zlib", () => require("zlib"));
+
+module.exports = mod;
+}),
+"[externals]/util [external] (util, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("util", () => require("util"));
+
+module.exports = mod;
+}),
+"[externals]/url [external] (url, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("url", () => require("url"));
+
+module.exports = mod;
+}),
+"[project]/src/lib/db.js [app-route] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "getConnection",
+    ()=>getConnection,
+    "getPool",
+    ()=>getPool,
+    "initDatabase",
+    ()=>initDatabase,
+    "query",
+    ()=>query,
+    "testConnection",
+    ()=>testConnection
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$mysql2$2f$promise$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/mysql2/promise.js [app-route] (ecmascript)");
+;
+// Reusable pool for MySQL/MariaDB (XAMPP) and optional TiDB in production.
+// NOTE: We now prefer local XAMPP by default during development. TiDB is only
+// used when NODE_ENV=production (or when DB_PREFER_LOCAL is not true) and a
+// DATABASE_URL is provided. This prevents accidental TiDB usage while developing.
+// TiDB Cloud connection string example (for production .env):
+// DATABASE_URL="mysql://<user>:<password>@<host>:4000/truck_booking_system?ssl={\"rejectUnauthorized\":true}"
+// You can append &timezone=Z to force UTC if needed.
+let pool; // cached across hot reloads (Next.js dev) and lambda invocations
+const isProd = ("TURBOPACK compile-time value", "development") === 'production';
+// Prefer local DB when developing unless explicitly overridden
+const preferLocal = process.env.DB_PREFER_LOCAL === 'true' || !isProd;
+function getPool() {
+    if (!pool) {
+        // Determine pool size once
+        const connectionLimit = Number(process.env.DB_POOL_SIZE || (("TURBOPACK compile-time truthy", 1) ? 10 : "TURBOPACK unreachable"));
+        const ensureUrlHasTiDBSSL = (raw)=>{
+            try {
+                const u = new URL(raw);
+                const isTiDB = /tidbcloud\.com$/i.test(u.hostname || '');
+                if (isTiDB) {
+                    const sp = u.searchParams;
+                    if (!sp.has('ssl')) sp.set('ssl', JSON.stringify({
+                        rejectUnauthorized: true
+                    }));
+                    if (!sp.has('timezone')) sp.set('timezone', 'Z');
+                    u.search = sp.toString();
+                    return u.toString();
+                }
+            } catch  {}
+            return raw;
+        };
+        // 1) Production TiDB via DATABASE_URL (only if not preferring local)
+        if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+        ;
+        else if (process.env.DB_HOST || process.env.DB_USERNAME) {
+            const isLocalHost = (process.env.DB_HOST || '').includes('localhost') || (process.env.DB_HOST || '').startsWith('127.');
+            const isTiDB = /tidbcloud\.com$/i.test(process.env.DB_HOST || '');
+            const useSSL = (process.env.DB_SSL === 'true' || isTiDB) && !isLocalHost; // force SSL for TiDB
+            pool = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$mysql2$2f$promise$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].createPool({
+                host: process.env.DB_HOST || 'localhost',
+                port: Number(process.env.DB_PORT || 3306),
+                user: process.env.DB_USERNAME || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_DATABASE || 'Bus-system',
+                ...useSSL ? {
+                    ssl: {
+                        rejectUnauthorized: true,
+                        minVersion: 'TLSv1.2',
+                        servername: process.env.DB_HOST
+                    },
+                    timezone: 'Z'
+                } : {},
+                waitForConnections: true,
+                connectionLimit,
+                queueLimit: 0
+            });
+        } else {
+            pool = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$mysql2$2f$promise$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].createPool({
+                host: 'localhost',
+                port: 3306,
+                user: 'root',
+                password: '',
+                database: 'Bus-system',
+                waitForConnections: true,
+                connectionLimit,
+                queueLimit: 0
+            });
+        }
+    }
+    return pool;
+}
+async function query(sql, params = []) {
+    const [rows] = await getPool().execute(sql, params);
+    return rows;
+}
+async function testConnection() {
+    const conn = await getPool().getConnection();
+    try {
+        await conn.ping();
+        return true;
+    } finally{
+        conn.release();
+    }
+}
+async function initDatabase(options = {}) {
+    const { seed = false } = options; // seed inserts sample data (optional)
+    // Ensure the target database exists (handy for fresh XAMPP installs)
+    // IMPORTANT: When using DATABASE_URL (e.g., TiDB on Vercel), skip this bootstrap step
+    // because connecting to localhost would fail. We assume the DB/schema already exists.
+    const usingDatabaseUrl = !preferLocal && !!process.env.DATABASE_URL;
+    if ("TURBOPACK compile-time truthy", 1) {
+        try {
+            // Derive connection settings (local-first)
+            const host = process.env.DB_HOST || 'localhost';
+            const port = Number(process.env.DB_PORT || 3306);
+            const user = process.env.DB_USERNAME || 'root';
+            const password = process.env.DB_PASSWORD || '';
+            const dbName = process.env.DB_DATABASE || 'Bus-system';
+            // Create the database if missing using a direct connection without selecting a DB
+            const isLocalHost = (host || '').includes('localhost') || (host || '').startsWith('127.');
+            const useSSL = process.env.DB_SSL === 'true' && !isLocalHost;
+            const bootstrapConn = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$mysql2$2f$promise$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].createConnection({
+                host,
+                port,
+                user,
+                password,
+                ...useSSL ? {
+                    ssl: {
+                        rejectUnauthorized: true,
+                        minVersion: 'TLSv1.2',
+                        servername: host
+                    }
+                } : {}
+            });
+            try {
+                await bootstrapConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+            } finally{
+                await bootstrapConn.end();
+            }
+        } catch (e) {
+            console.error('Failed to ensure database exists:', e.message);
+            throw e;
+        }
+    }
+    const pool = getPool();
+    // Helper to run queries safely
+    const exec = async (sql)=>{
+        try {
+            await pool.query(sql);
+        } catch (err) {
+            if (!/Duplicate|exists|already/i.test(err.message)) {
+                console.error('Schema statement failed:', err.message, '\nSQL:', sql);
+                throw err;
+            }
+        }
+    };
+    // MariaDB-safe helper: add FK if missing by checking INFORMATION_SCHEMA
+    const ensureForeignKey = async (table, constraintName, definition)=>{
+        const [rows] = await pool.query(`SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+       WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?`, [
+            table,
+            constraintName
+        ]);
+        if (rows.length === 0) {
+            await pool.query(`ALTER TABLE \`${table}\` ADD CONSTRAINT \`${constraintName}\` ${definition}`);
+        }
+    };
+    // 0) Legacy tables (keep for backward compatibility; safe to keep)
+    await exec(`CREATE TABLE IF NOT EXISTS products (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(150) NOT NULL,
+    vendor VARCHAR(150) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_product_vendor (name, vendor)
+  ) CHARSET=utf8mb4`);
+    await exec(`CREATE TABLE IF NOT EXISTS locations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ) CHARSET=utf8mb4`);
+    // 1) Users (enhanced)
+    await exec(`CREATE TABLE IF NOT EXISTS users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(100) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY username (username)
+  ) CHARSET=utf8mb4`);
+    // Add new columns if missing
+    await exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin TINYINT(1) NOT NULL DEFAULT 0`);
+    await exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin TINYINT(1) NOT NULL DEFAULT 0`);
+    await exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(100) NULL`);
+    await exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100) NULL`);
+    await exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plant_id INT NULL`);
+    await exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id INT NULL`);
+    // 2) Plants / Departments
+    await exec(`CREATE TABLE IF NOT EXISTS plants (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(10) NOT NULL UNIQUE,
+    name VARCHAR(100) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ) CHARSET=utf8mb4`);
+    await exec(`CREATE TABLE IF NOT EXISTS departments (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    plant_id INT NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_plant_code (plant_id, code),
+    KEY plant_idx (plant_id)
+  ) CHARSET=utf8mb4`);
+    // FK for users -> plants/departments (MariaDB-compatible)
+    await ensureForeignKey('users', 'users_plant_fk', 'FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE SET NULL');
+    await ensureForeignKey('users', 'users_department_fk', 'FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL');
+    await ensureForeignKey('departments', 'dept_plant_fk', 'FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE CASCADE');
+    // 2.1) User departments (many-to-many for department memberships)
+    await exec(`CREATE TABLE IF NOT EXISTS user_departments (
+    user_id INT NOT NULL,
+    department_id INT NOT NULL,
+    PRIMARY KEY (user_id, department_id)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('user_departments', 'ud_user_fk', 'FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
+    await ensureForeignKey('user_departments', 'ud_dept_fk', 'FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE');
+    // 3) Shifts / Depart Times
+    await exec(`CREATE TABLE IF NOT EXISTS shifts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name_th VARCHAR(100) NOT NULL,
+    name_en VARCHAR(100) NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ) CHARSET=utf8mb4`);
+    await exec(`CREATE TABLE IF NOT EXISTS depart_times (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    shift_id INT NOT NULL,
+    time TIME NOT NULL,
+    is_entry TINYINT(1) NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deactivated_at DATETIME NULL,
+    UNIQUE KEY uniq_shift_time_type (shift_id, time, is_entry),
+    KEY shift_idx (shift_id)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('depart_times', 'dt_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+    // Backfill columns for existing databases (TiDB/MySQL support IF NOT EXISTS)
+    await exec(`ALTER TABLE depart_times
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS deactivated_at DATETIME NULL,
+    ADD COLUMN IF NOT EXISTS is_entry TINYINT(1) NOT NULL DEFAULT 0`);
+    // Ensure unique index includes is_entry; drop legacy index if present
+    try {
+        const [idx] = await pool.query(`SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'depart_times' AND INDEX_NAME = 'uniq_shift_time_type'`);
+        if (idx.length === 0) {
+            // Drop old unique if exists
+            const [oldIdx] = await pool.query(`SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'depart_times' AND INDEX_NAME = 'uniq_shift_time'`);
+            if (oldIdx.length > 0) {
+                await pool.query(`ALTER TABLE depart_times DROP INDEX uniq_shift_time`);
+            }
+            await pool.query(`ALTER TABLE depart_times ADD UNIQUE INDEX uniq_shift_time_type (shift_id, time, is_entry)`);
+        }
+    } catch (e) {
+        // Non-fatal: log and continue
+        console.warn('Index migration for depart_times skipped:', e.message);
+    }
+    // 4) Routes (สายรถ)
+    await exec(`CREATE TABLE IF NOT EXISTS routes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    vendor VARCHAR(100) NULL,
+    display_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ) CHARSET=utf8mb4`);
+    // 5) OT counts per date/route/plant/department/shift/depart_time
+    await exec(`CREATE TABLE IF NOT EXISTS ot_counts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    the_date DATE NOT NULL,
+    route_id INT NOT NULL,
+    plant_id INT NOT NULL,
+    department_id INT NOT NULL,
+    shift_id INT NOT NULL,
+    depart_time_id INT NOT NULL,
+    count INT UNSIGNED NOT NULL DEFAULT 0,
+    UNIQUE KEY uniq_count (the_date, route_id, plant_id, department_id, shift_id, depart_time_id),
+    KEY date_idx (the_date)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_counts', 'otc_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_counts', 'otc_plant_fk', 'FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_counts', 'otc_dept_fk', 'FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_counts', 'otc_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_counts', 'otc_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
+    // 5.1) Overview counts per date/department/shift (grid totals without route/time)
+    await exec(`CREATE TABLE IF NOT EXISTS ot_overview_counts (
+    the_date DATE NOT NULL,
+    department_id INT NOT NULL,
+    shift_id INT NOT NULL,
+    count INT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (the_date, department_id, shift_id)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_overview_counts', 'otoc_dept_fk', 'FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_overview_counts', 'otoc_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_overview_counts', 'otoc_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+    // 6) Locks per date
+    await exec(`CREATE TABLE IF NOT EXISTS ot_locks (
+    the_date DATE PRIMARY KEY,
+    is_locked TINYINT(1) NOT NULL DEFAULT 1,
+    locked_by_user_id INT NULL,
+    locked_at DATETIME NULL
+  ) CHARSET=utf8mb4`);
+    // Editable shop plan per date (for adminga overrides)
+    await exec(`CREATE TABLE IF NOT EXISTS ot_shop_plan (
+      the_date DATE PRIMARY KEY,
+      rice_shops INT DEFAULT 0,
+      minimart_shops INT DEFAULT 0,
+      noodle_shops INT DEFAULT 0,
+      updated_by INT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    // Nurse plan per date and shift (editable)
+    await exec(`CREATE TABLE IF NOT EXISTS ot_nurse_plan (
+      the_date DATE NOT NULL,
+      shift_id INT NOT NULL,
+      nurse_count INT NOT NULL DEFAULT 1,
+      updated_by INT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (the_date, shift_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_locks', 'otlock_user_fk', 'FOREIGN KEY (locked_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.1) Department-level locks per date (granular lock per department)
+    await exec(`CREATE TABLE IF NOT EXISTS ot_department_locks (
+    the_date DATE NOT NULL,
+    department_id INT NOT NULL,
+    is_locked TINYINT(1) NOT NULL DEFAULT 1,
+    locked_by_user_id INT NULL,
+    locked_at DATETIME NULL,
+    PRIMARY KEY (the_date, department_id)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_department_locks', 'otdeptlock_dept_fk', 'FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_department_locks', 'otdeptlock_user_fk', 'FOREIGN KEY (locked_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
+    await ensureForeignKey('ot_shop_plan', 'otshop_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+    await ensureForeignKey('ot_nurse_plan', 'otnurse_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_nurse_plan', 'otnurse_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.2) Time-slot level locks per date/shift/depart_time (global)
+    await exec(`CREATE TABLE IF NOT EXISTS ot_time_locks (
+    the_date DATE NOT NULL,
+    shift_id INT NOT NULL,
+    depart_time_id INT NOT NULL,
+    is_locked TINYINT(1) NOT NULL DEFAULT 1,
+    locked_by_user_id INT NULL,
+    locked_at DATETIME NULL,
+    PRIMARY KEY (the_date, shift_id, depart_time_id)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_time_locks', 'ottime_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_time_locks', 'ottime_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_time_locks', 'ottime_user_fk', 'FOREIGN KEY (locked_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.3) Department-level locks per date/shift/depart_time
+    await exec(`CREATE TABLE IF NOT EXISTS ot_department_time_locks (
+    the_date DATE NOT NULL,
+    department_id INT NOT NULL,
+    shift_id INT NOT NULL,
+    depart_time_id INT NOT NULL,
+    is_locked TINYINT(1) NOT NULL DEFAULT 1,
+    locked_by_user_id INT NULL,
+    locked_at DATETIME NULL,
+    PRIMARY KEY (the_date, department_id, shift_id, depart_time_id)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_department_time_locks', 'otdepttime_dept_fk', 'FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_department_time_locks', 'otdepttime_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_department_time_locks', 'otdepttime_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_department_time_locks', 'otdepttime_user_fk', 'FOREIGN KEY (locked_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
+    // Car plan per date/shift/depart_time/route (editable by super admin)
+    await exec(`CREATE TABLE IF NOT EXISTS ot_car_plan (
+      the_date DATE NOT NULL,
+      shift_id INT NOT NULL,
+      depart_time_id INT NOT NULL,
+      route_id INT NOT NULL,
+      car_count INT NOT NULL DEFAULT 0,
+      updated_by INT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (the_date, shift_id, depart_time_id, route_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_car_plan', 'otcar_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_car_plan', 'otcar_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_car_plan', 'otcar_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_car_plan', 'otcar_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.x) Vendor payments per date/route (editable summary values)
+    await exec(`CREATE TABLE IF NOT EXISTS vendor_payments (
+      the_date DATE NOT NULL,
+      route_id INT NOT NULL,
+      pay_flat INT NOT NULL DEFAULT 0,           -- เหมาจ่าย
+      pay_wait INT NOT NULL DEFAULT 0,           -- จอดรอ
+      pay_ot_normal INT NOT NULL DEFAULT 0,      -- OT หมวดวันปกติ
+      pay_trip INT NOT NULL DEFAULT 0,           -- เหมานเที่ยว
+      pay_ot_holiday INT NOT NULL DEFAULT 0,     -- OT หมวดวันหยุด
+      pay_trip_night INT NOT NULL DEFAULT 0,     -- เหมานเที่ยวกะดึก
+      updated_by INT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (the_date, route_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await ensureForeignKey('vendor_payments', 'vp_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
+    await ensureForeignKey('vendor_payments', 'vp_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.y) Vendor rates per route (persistent Cost values)
+    await exec(`CREATE TABLE IF NOT EXISTS vendor_rates (
+    route_id INT NOT NULL,
+    rate_flat DECIMAL(12,2) NOT NULL DEFAULT 0,
+    rate_wait DECIMAL(12,2) NOT NULL DEFAULT 0,
+    rate_ot_normal DECIMAL(12,2) NOT NULL DEFAULT 0,
+    rate_trip DECIMAL(12,2) NOT NULL DEFAULT 0,
+    rate_ot_holiday DECIMAL(12,2) NOT NULL DEFAULT 0,
+    rate_trip_night DECIMAL(12,2) NOT NULL DEFAULT 0,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (route_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await ensureForeignKey('vendor_rates', 'vr_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
+    await ensureForeignKey('vendor_rates', 'vr_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+    // 7) (Optional) Legacy tables FKs
+    await exec(`CREATE TABLE IF NOT EXISTS bookings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    truck_number INT NOT NULL,
+    department VARCHAR(100) NOT NULL,
+    percentage INT NOT NULL,
+    booking_date DATE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_booking_lookup (booking_date, product_id, truck_number),
+    KEY user_id (user_id),
+    KEY product_id (product_id)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('bookings', 'bookings_user_fk', 'FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
+    await ensureForeignKey('bookings', 'bookings_product_fk', 'FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE');
+    // Transport registrations (for adminga first)
+    await exec(`CREATE TABLE IF NOT EXISTS transport_registrations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    employee_code VARCHAR(50) NOT NULL,
+    full_name VARCHAR(150) NOT NULL,
+    employee_type VARCHAR(100) NULL,
+    plant_id INT NULL,
+    department_id INT NULL,
+    department_text VARCHAR(100) NULL,
+    route_id INT NULL,
+    pickup_point VARCHAR(150) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  ) CHARSET=utf8mb4`);
+    // Backfill new column for existing DBs
+    await exec(`ALTER TABLE transport_registrations ADD COLUMN IF NOT EXISTS department_text VARCHAR(100) NULL`);
+    await ensureForeignKey('transport_registrations', 'tr_plant_fk', 'FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE SET NULL');
+    await ensureForeignKey('transport_registrations', 'tr_dept_fk', 'FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL');
+    await ensureForeignKey('transport_registrations', 'tr_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE SET NULL');
+    // Employee types (master)
+    await exec(`CREATE TABLE IF NOT EXISTS employee_types (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ) CHARSET=utf8mb4`);
+    // Pickup points (master) - optional relation to route
+    await exec(`CREATE TABLE IF NOT EXISTS pickup_points (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    route_id INT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('pickup_points', 'pp_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE SET NULL');
+    if (seed) {
+        // Seed plants
+        await exec(`INSERT INTO plants (code, name) VALUES ('AC','AC'),('RF','RF'),('SSC','SSC')`);
+        // Seed departments (examples)
+        await exec(`INSERT INTO departments (plant_id, code, name)
+      SELECT p.id, 'SAC','SAC' FROM plants p WHERE p.code='AC';`);
+        await exec(`INSERT INTO departments (plant_id, code, name)
+      SELECT p.id, 'AIO','AIO' FROM plants p WHERE p.code='AC';`);
+        await exec(`INSERT INTO departments (plant_id, code, name)
+      SELECT p.id, 'RF-A','RF-A' FROM plants p WHERE p.code='RF';`);
+        await exec(`INSERT INTO departments (plant_id, code, name)
+      SELECT p.id, 'RF-B','RF-B' FROM plants p WHERE p.code='RF';`);
+        await exec(`INSERT INTO departments (plant_id, code, name)
+      SELECT p.id, 'HR','HR' FROM plants p WHERE p.code='SSC';`);
+        await exec(`INSERT INTO departments (plant_id, code, name)
+      SELECT p.id, 'SCM','SCM' FROM plants p WHERE p.code='SSC';`);
+        // Seed shifts and times
+        await exec(`INSERT INTO shifts (name_th, name_en) VALUES ('กะกลางวัน','Day Shift'),('กะกลางคืน','Night Shift')`);
+        await exec(`INSERT INTO depart_times (shift_id, time)
+      SELECT s.id, '17:00:00' FROM shifts s WHERE s.name_th='กะกลางวัน'`);
+        await exec(`INSERT INTO depart_times (shift_id, time)
+      SELECT s.id, '19:10:00' FROM shifts s WHERE s.name_th='กะกลางวัน'`);
+        // Seed routes
+        const routeNames = [
+            'คลองอุดม',
+            'วิจิตรา',
+            'สระแท่น',
+            'นาดี',
+            'ครัวอากู๋',
+            'บ้านเลียบ',
+            'สันติสุข',
+            'ปราจีนบุรี',
+            'สระแก้ว',
+            'ดงน้อย'
+        ];
+        for(let i = 0; i < routeNames.length; i++){
+            const name = routeNames[i];
+            await exec(`INSERT INTO routes (name, display_order) VALUES ('${name}', ${i + 1})`);
+        }
+    // Seed super admin (password: 12345 placeholder hashed recommended in auth flow)
+    // Note: Keep existing login-bypass in dev as earlier.
+    }
+    return {
+        ok: true
+    };
+}
+async function getConnection() {
+    return getPool().getConnection();
+}
+}),
+"[project]/src/lib/auth.js [app-route] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "getUserFromRequest",
+    ()=>getUserFromRequest,
+    "isDateLocked",
+    ()=>isDateLocked,
+    "isDepartmentLocked",
+    ()=>isDepartmentLocked,
+    "requireAdmin",
+    ()=>requireAdmin,
+    "requireAuth",
+    ()=>requireAuth,
+    "signToken",
+    ()=>signToken
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jsonwebtoken$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/jsonwebtoken/index.js [app-route] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/db.js [app-route] (ecmascript)");
+;
+;
+const SECRET_KEY = process.env.JWT_SECRET;
+if (!SECRET_KEY) {
+    throw new Error('Missing JWT_SECRET env var');
+}
+async function getUserFromRequest(request) {
+    try {
+        const hdr = request.headers.get('authorization') || '';
+        const token = hdr.startsWith('Bearer ') ? hdr.slice(7) : null;
+        if (!token) return null;
+        const decoded = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jsonwebtoken$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].verify(token, SECRET_KEY);
+        // Dev bypass: if adminga from bypass, return super admin-like
+        if (decoded && decoded.username === 'adminga' && decoded.userId === 0) {
+            return {
+                id: 0,
+                username: 'adminga',
+                is_admin: 1,
+                is_super_admin: 1,
+                display_name: 'Admin GA',
+                plant_id: null,
+                department_id: null
+            };
+        }
+        // Load fresh from DB to get latest roles and scope
+        const rows = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT id, username, is_admin, is_super_admin, display_name, plant_id, department_id FROM users WHERE id = ?', [
+            decoded.userId
+        ]);
+        if (!rows.length) return null;
+        // Also load multi-department memberships if available
+        let department_ids = [];
+        try {
+            const drows = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT department_id FROM user_departments WHERE user_id = ?', [
+                rows[0].id
+            ]);
+            department_ids = (Array.isArray(drows) ? drows : []).map((r)=>r.department_id).filter(Boolean);
+        } catch (e) {
+            // ignore if table missing; init paths elsewhere will create it lazily
+            department_ids = [];
+        }
+        return {
+            ...rows[0],
+            department_ids
+        };
+    } catch (e) {
+        return null;
+    }
+}
+function signToken(payload) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jsonwebtoken$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].sign(payload, SECRET_KEY, {
+        expiresIn: '1d'
+    });
+}
+function requireAuth(user) {
+    if (!user) {
+        const error = new Error('Unauthorized');
+        error.status = 401;
+        throw error;
+    }
+}
+function requireAdmin(user) {
+    requireAuth(user);
+    if (!(user.is_super_admin || user.is_admin)) {
+        const error = new Error('Forbidden');
+        error.status = 403;
+        throw error;
+    }
+}
+async function isDateLocked(dateStr) {
+    const rows = await (async ()=>{
+        try {
+            return await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT is_locked FROM ot_locks WHERE the_date = ?', [
+                dateStr
+            ]);
+        } catch (err) {
+            const msg = String(err?.message || '');
+            const isNoTable = err?.code === 'ER_NO_SUCH_TABLE' || msg.includes("doesn't exist") || err?.sqlState === '42S02';
+            if (!isNoTable) throw err;
+            await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["initDatabase"])();
+            return (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT is_locked FROM ot_locks WHERE the_date = ?', [
+                dateStr
+            ]);
+        }
+    })();
+    if (!rows.length) return false;
+    return !!rows[0].is_locked;
+}
+async function isDepartmentLocked(dateStr, departmentId) {
+    if (!departmentId) return isDateLocked(dateStr);
+    const rows = await (async ()=>{
+        try {
+            return await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT is_locked FROM ot_department_locks WHERE the_date = ? AND department_id = ?', [
+                dateStr,
+                departmentId
+            ]);
+        } catch (err) {
+            const msg = String(err?.message || '');
+            const isNoTable = err?.code === 'ER_NO_SUCH_TABLE' || msg.includes("doesn't exist") || err?.sqlState === '42S02';
+            if (!isNoTable) throw err;
+            await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["initDatabase"])();
+            return (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT is_locked FROM ot_department_locks WHERE the_date = ? AND department_id = ?', [
+                dateStr,
+                departmentId
+            ]);
+        }
+    })();
+    if (rows.length) return !!rows[0].is_locked;
+    // If no department-specific row, use global lock (if any)
+    return isDateLocked(dateStr);
+}
+}),
+"[project]/src/app/api/ot/locks/route.js [app-route] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "GET",
+    ()=>GET,
+    "POST",
+    ()=>POST
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/server.js [app-route] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/db.js [app-route] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$auth$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/auth.js [app-route] (ecmascript)");
+;
+;
+;
+// Helper: run a DB action, if table missing run init and retry once
+async function withInitRetry(action) {
+    try {
+        return await action();
+    } catch (err) {
+        const msg = String(err?.message || '');
+        const isNoTable = err?.code === 'ER_NO_SUCH_TABLE' || msg.includes("doesn't exist") || err?.sqlState === '42S02';
+        if (!isNoTable) throw err;
+        // Initialize schema (idempotent) and retry once
+        await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["initDatabase"])();
+        return action();
+    }
+}
+async function GET(request) {
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+    const departmentId = searchParams.get('departmentId');
+    const list = searchParams.get('list');
+    const shiftId = searchParams.get('shiftId');
+    const departTimeId = searchParams.get('departTimeId');
+    if (!date) return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+        error: 'missing date'
+    }, {
+        status: 400
+    });
+    // Time-slot scoped lock (global)
+    if (shiftId && departTimeId && !departmentId) {
+        const rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT the_date, shift_id, depart_time_id, is_locked, locked_by_user_id, locked_at FROM ot_time_locks WHERE the_date=? AND shift_id=? AND depart_time_id=?', [
+                date,
+                Number(shiftId),
+                Number(departTimeId)
+            ]));
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows[0] || {
+            the_date: date,
+            shift_id: Number(shiftId),
+            depart_time_id: Number(departTimeId),
+            is_locked: 0
+        });
+    }
+    // Time-slot scoped lock per department
+    if (shiftId && departTimeId && departmentId) {
+        const rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT the_date, department_id, shift_id, depart_time_id, is_locked, locked_by_user_id, locked_at FROM ot_department_time_locks WHERE the_date=? AND department_id=? AND shift_id=? AND depart_time_id=?', [
+                date,
+                Number(departmentId),
+                Number(shiftId),
+                Number(departTimeId)
+            ]));
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows[0] || {
+            the_date: date,
+            department_id: Number(departmentId),
+            shift_id: Number(shiftId),
+            depart_time_id: Number(departTimeId),
+            is_locked: 0
+        });
+    }
+    // Return list of department locks for the date
+    if (list === 'departments') {
+        const rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT the_date, department_id, is_locked, locked_by_user_id, locked_at FROM ot_department_locks WHERE the_date = ?', [
+                date
+            ]));
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows);
+    }
+    // Return specific department lock
+    if (departmentId) {
+        const rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT the_date, department_id, is_locked, locked_by_user_id, locked_at FROM ot_department_locks WHERE the_date = ? AND department_id = ?', [
+                date,
+                Number(departmentId)
+            ]));
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows[0] || {
+            the_date: date,
+            department_id: Number(departmentId),
+            is_locked: 0
+        });
+    }
+    // Default: global lock state
+    const rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])('SELECT the_date, is_locked, locked_by_user_id, locked_at FROM ot_locks WHERE the_date = ?', [
+            date
+        ]));
+    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows[0] || {
+        the_date: date,
+        is_locked: 0
+    });
+}
+async function POST(request) {
+    const user = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$auth$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getUserFromRequest"])(request);
+    try {
+        (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$auth$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["requireAdmin"])(user);
+    } catch (e) {
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            error: e.message
+        }, {
+            status: e.status || 403
+        });
+    }
+    const { the_date, is_locked, department_id, shift_id, depart_time_id } = await request.json();
+    if (!the_date) return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+        error: 'missing the_date'
+    }, {
+        status: 400
+    });
+    const lockedFlag = is_locked ? 1 : 0;
+    const lockerId = Number(user?.id) > 0 ? Number(user.id) : null;
+    // Department-level time lock
+    if (department_id && shift_id && depart_time_id) {
+        const deptId = Number(department_id);
+        const shId = Number(shift_id);
+        const dtId = Number(depart_time_id);
+        if (!deptId || !shId || !dtId) return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            error: 'invalid params'
+        }, {
+            status: 400
+        });
+        const isSuper = !!user?.is_super_admin;
+        if (!isSuper) {
+            const myDeptIds = Array.isArray(user?.department_ids) && user.department_ids.length ? user.department_ids : user?.department_id ? [
+                user.department_id
+            ] : [];
+            if (!myDeptIds.includes(deptId)) return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                error: 'forbidden'
+            }, {
+                status: 403
+            });
+        }
+        if (lockedFlag) {
+            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_department_time_locks (the_date, department_id, shift_id, depart_time_id, is_locked, locked_by_user_id, locked_at)
+         VALUES (?,?,?,?,1,?, NOW())
+         ON DUPLICATE KEY UPDATE is_locked=VALUES(is_locked), locked_by_user_id=VALUES(locked_by_user_id), locked_at=NOW()`, [
+                    the_date,
+                    deptId,
+                    shId,
+                    dtId,
+                    lockerId
+                ]));
+        } else {
+            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_department_time_locks (the_date, department_id, shift_id, depart_time_id, is_locked, locked_by_user_id, locked_at)
+         VALUES (?,?,?, ?,0,NULL,NULL)
+         ON DUPLICATE KEY UPDATE is_locked=VALUES(is_locked), locked_by_user_id=NULL, locked_at=NULL`, [
+                    the_date,
+                    deptId,
+                    shId,
+                    dtId
+                ]));
+        }
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            ok: true
+        });
+    }
+    // Department-level lock (allowed for super admin or department-scoped admin)
+    if (department_id) {
+        const deptId = Number(department_id);
+        if (!deptId) return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            error: 'invalid department_id'
+        }, {
+            status: 400
+        });
+        // Non-super admins can only lock/unlock their own department
+        const isSuper = !!user?.is_super_admin;
+        if (!isSuper) {
+            const myDeptIds = Array.isArray(user?.department_ids) && user.department_ids.length ? user.department_ids : user?.department_id ? [
+                user.department_id
+            ] : [];
+            if (!myDeptIds.includes(deptId)) {
+                return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                    error: 'forbidden'
+                }, {
+                    status: 403
+                });
+            }
+        }
+        if (lockedFlag) {
+            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_department_locks (the_date, department_id, is_locked, locked_by_user_id, locked_at)
+         VALUES (?,?,?,?, NOW())
+         ON DUPLICATE KEY UPDATE is_locked = VALUES(is_locked), locked_by_user_id = VALUES(locked_by_user_id), locked_at = NOW()`, [
+                    the_date,
+                    deptId,
+                    1,
+                    lockerId
+                ]));
+        } else {
+            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_department_locks (the_date, department_id, is_locked, locked_by_user_id, locked_at)
+         VALUES (?,?,0,NULL,NULL)
+         ON DUPLICATE KEY UPDATE is_locked = VALUES(is_locked), locked_by_user_id = NULL, locked_at = NULL`, [
+                    the_date,
+                    deptId
+                ]));
+        }
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            ok: true
+        });
+    }
+    // Global time-slot lock (super admin only)
+    if (shift_id && depart_time_id) {
+        if (!user?.is_super_admin) return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            error: 'forbidden (super admin only for global time lock)'
+        }, {
+            status: 403
+        });
+        const shId = Number(shift_id);
+        const dtId = Number(depart_time_id);
+        if (lockedFlag) {
+            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_time_locks (the_date, shift_id, depart_time_id, is_locked, locked_by_user_id, locked_at)
+         VALUES (?,?,?,?,?, NOW())
+         ON DUPLICATE KEY UPDATE is_locked=VALUES(is_locked), locked_by_user_id=VALUES(locked_by_user_id), locked_at=NOW()`, [
+                    the_date,
+                    shId,
+                    dtId,
+                    1,
+                    lockerId
+                ]));
+        } else {
+            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_time_locks (the_date, shift_id, depart_time_id, is_locked, locked_by_user_id, locked_at)
+         VALUES (?,?,?,0,NULL,NULL)
+         ON DUPLICATE KEY UPDATE is_locked=VALUES(is_locked), locked_by_user_id=NULL, locked_at=NULL`, [
+                    the_date,
+                    shId,
+                    dtId
+                ]));
+        }
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            ok: true
+        });
+    }
+    // Global lock (super admin only)
+    if (!user?.is_super_admin) {
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            error: 'forbidden (super admin only for global lock)'
+        }, {
+            status: 403
+        });
+    }
+    if (lockedFlag) {
+        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_locks (the_date, is_locked, locked_by_user_id, locked_at)
+       VALUES (?,?,?, NOW())
+       ON DUPLICATE KEY UPDATE is_locked = VALUES(is_locked), locked_by_user_id = VALUES(locked_by_user_id), locked_at = NOW()`, [
+                the_date,
+                1,
+                lockerId
+            ]));
+    } else {
+        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO ot_locks (the_date, is_locked, locked_by_user_id, locked_at)
+       VALUES (?,?,NULL,NULL)
+       ON DUPLICATE KEY UPDATE is_locked = VALUES(is_locked), locked_by_user_id = NULL, locked_at = NULL`, [
+                the_date,
+                0
+            ]));
+    }
+    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+        ok: true
+    });
+}
+}),
+];
+
+//# sourceMappingURL=%5Broot-of-the-server%5D__8533b7e1._.js.map
