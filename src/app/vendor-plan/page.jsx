@@ -16,6 +16,7 @@ export default function VendorPlanPage() {
   const [shifts, setShifts] = useState([]); // [{id, name_th, name_en}]
   const [departTimesByShift, setDepartTimesByShift] = useState({}); // { shiftId: [{id, time}] }
   const [countsByDepartTime, setCountsByDepartTime] = useState({}); // { dtId: { routeId: people } }
+  const [carPlanByDepartTime, setCarPlanByDepartTime] = useState({}); // { dtId: { routeId: car_count } }
   const captureRef = useRef(null);
   const [payments, setPayments] = useState({}); // { routeId: { pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night } }
   const [editModal, setEditModal] = useState({ open:false, route:null, key:null, value:'' });
@@ -127,6 +128,33 @@ export default function VendorPlanPage() {
     loadCounts();
   }, [date, departTimesByShift, dayNightShiftIds.day, dayNightShiftIds.night]);
 
+  // Load car overrides per depart time (manual overrides from ot_car_plan)
+  useEffect(() => {
+    const loadCars = async () => {
+      const acc = {};
+      const allDts = [
+        ...(departTimesByShift[dayNightShiftIds.day] || []),
+        ...(departTimesByShift[dayNightShiftIds.night] || []),
+      ];
+      for (const dt of allDts) {
+        try {
+          const res = await fetch(`/api/ot/cars?date=${date}&shiftId=${dt.shift_id || dayNightShiftIds.day}&departTimeId=${dt.id}`);
+          const rows = await res.json().catch(() => []);
+          const map = {};
+          for (const row of (Array.isArray(rows) ? rows : [])) {
+            const rId = row.route_id; const c = Number(row.car_count) || 0;
+            map[rId] = c;
+          }
+          acc[dt.id] = map;
+        } catch {
+          acc[dt.id] = {};
+        }
+      }
+      setCarPlanByDepartTime(acc);
+    };
+    loadCars();
+  }, [date, departTimesByShift, dayNightShiftIds.day, dayNightShiftIds.night]);
+
   // Load vendor payments for the date
   useEffect(() => {
     const loadPayments = async () => {
@@ -224,7 +252,8 @@ export default function VendorPlanPage() {
       for (const r of routes) {
         const ppl = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
         pSum += ppl;
-        cSum += calcVehicles(ppl);
+        const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+        cSum += (override != null) ? (Number(override) || 0) : calcVehicles(ppl);
       }
       peopleTotals[dt.id] = pSum;
       carTotals[dt.id] = cSum;
@@ -237,7 +266,7 @@ export default function VendorPlanPage() {
       payTotals[k] = s;
     }
     return { peopleTotals, carTotals, payTotals };
-  }, [allTimes, routes, countsByDepartTime, payments]);
+  }, [allTimes, routes, countsByDepartTime, payments, carPlanByDepartTime]);
 
   const welcomeText = useMemo(() => formatWelcome(user, departments, plants), [user, departments, plants]);
 
@@ -347,7 +376,8 @@ export default function VendorPlanPage() {
                   {/* Day shift per-time cells */}
                   {dayTimes.map((dt) => {
                     const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
-                    const cars = calcVehicles(people);
+                    const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+                    const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
                     return (
                       <Fragment key={`cell-d-${dt.id}-${r.id}`}>
                         <td style={styles.tdCell}>{people > 0 ? <b>{people}</b> : ""}</td>
@@ -359,7 +389,9 @@ export default function VendorPlanPage() {
                   {(() => {
                     const dayCars = dayTimes.reduce((acc, dt) => {
                       const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
-                      return acc + calcVehicles(people);
+                      const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+                      const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
+                      return acc + cars;
                     }, 0);
                     return (
                       <td style={styles.tdCell} key={`cell-day-sum-${r.id}`}>{dayCars > 0 ? <b>{dayCars} คัน</b> : ''}</td>
@@ -368,7 +400,8 @@ export default function VendorPlanPage() {
                   {/* Night shift per-time cells */}
                   {nightTimes.map((dt) => {
                     const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
-                    const cars = calcVehicles(people);
+                    const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+                    const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
                     return (
                       <Fragment key={`cell-n-${dt.id}-${r.id}`}>
                         <td style={styles.tdCell}>{people > 0 ? <b>{people}</b> : ""}</td>
@@ -380,7 +413,9 @@ export default function VendorPlanPage() {
                   {(() => {
                     const nightCars = nightTimes.reduce((acc, dt) => {
                       const people = Number(countsByDepartTime?.[dt.id]?.[r.id] || 0);
-                      return acc + calcVehicles(people);
+                      const override = carPlanByDepartTime?.[dt.id]?.[r.id];
+                      const cars = (override != null) ? (Number(override) || 0) : calcVehicles(people);
+                      return acc + cars;
                     }, 0);
                     return (
                       <td style={styles.tdCell} key={`cell-night-sum-${r.id}`}>{nightCars > 0 ? <b>{nightCars} คัน</b> : ''}</td>

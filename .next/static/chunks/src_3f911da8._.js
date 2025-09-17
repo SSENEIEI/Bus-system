@@ -101,6 +101,7 @@ function VendorPlanPage() {
     const [shifts, setShifts] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]); // [{id, name_th, name_en}]
     const [departTimesByShift, setDepartTimesByShift] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({}); // { shiftId: [{id, time}] }
     const [countsByDepartTime, setCountsByDepartTime] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({}); // { dtId: { routeId: people } }
+    const [carPlanByDepartTime, setCarPlanByDepartTime] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({}); // { dtId: { routeId: car_count } }
     const captureRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     const [payments, setPayments] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({}); // { routeId: { pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night } }
     const [editModal, setEditModal] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
@@ -297,6 +298,44 @@ function VendorPlanPage() {
         dayNightShiftIds.day,
         dayNightShiftIds.night
     ]);
+    // Load car overrides per depart time (manual overrides from ot_car_plan)
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "VendorPlanPage.useEffect": ()=>{
+            const loadCars = {
+                "VendorPlanPage.useEffect.loadCars": async ()=>{
+                    const acc = {};
+                    const allDts = [
+                        ...departTimesByShift[dayNightShiftIds.day] || [],
+                        ...departTimesByShift[dayNightShiftIds.night] || []
+                    ];
+                    for (const dt of allDts){
+                        try {
+                            const res = await fetch("/api/ot/cars?date=".concat(date, "&shiftId=").concat(dt.shift_id || dayNightShiftIds.day, "&departTimeId=").concat(dt.id));
+                            const rows = await res.json().catch({
+                                "VendorPlanPage.useEffect.loadCars": ()=>[]
+                            }["VendorPlanPage.useEffect.loadCars"]);
+                            const map = {};
+                            for (const row of Array.isArray(rows) ? rows : []){
+                                const rId = row.route_id;
+                                const c = Number(row.car_count) || 0;
+                                map[rId] = c;
+                            }
+                            acc[dt.id] = map;
+                        } catch (e) {
+                            acc[dt.id] = {};
+                        }
+                    }
+                    setCarPlanByDepartTime(acc);
+                }
+            }["VendorPlanPage.useEffect.loadCars"];
+            loadCars();
+        }
+    }["VendorPlanPage.useEffect"], [
+        date,
+        departTimesByShift,
+        dayNightShiftIds.day,
+        dayNightShiftIds.night
+    ]);
     // Load vendor payments for the date
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "VendorPlanPage.useEffect": ()=>{
@@ -477,10 +516,11 @@ function VendorPlanPage() {
                 let pSum = 0;
                 let cSum = 0;
                 for (const r of routes){
-                    var _countsByDepartTime_dt_id;
+                    var _countsByDepartTime_dt_id, _carPlanByDepartTime_dt_id;
                     const ppl = Number((countsByDepartTime === null || countsByDepartTime === void 0 ? void 0 : (_countsByDepartTime_dt_id = countsByDepartTime[dt.id]) === null || _countsByDepartTime_dt_id === void 0 ? void 0 : _countsByDepartTime_dt_id[r.id]) || 0);
                     pSum += ppl;
-                    cSum += calcVehicles(ppl);
+                    const override = carPlanByDepartTime === null || carPlanByDepartTime === void 0 ? void 0 : (_carPlanByDepartTime_dt_id = carPlanByDepartTime[dt.id]) === null || _carPlanByDepartTime_dt_id === void 0 ? void 0 : _carPlanByDepartTime_dt_id[r.id];
+                    cSum += override != null ? Number(override) || 0 : calcVehicles(ppl);
                 }
                 peopleTotals[dt.id] = pSum;
                 carTotals[dt.id] = cSum;
@@ -510,7 +550,8 @@ function VendorPlanPage() {
         allTimes,
         routes,
         countsByDepartTime,
-        payments
+        payments,
+        carPlanByDepartTime
     ]);
     const welcomeText = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
         "VendorPlanPage.useMemo[welcomeText]": ()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$formatters$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatWelcome"])(user, departments, plants)
@@ -541,7 +582,7 @@ function VendorPlanPage() {
                                         children: "แผนจัดรถ"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 251,
+                                        lineNumber: 280,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -555,13 +596,13 @@ function VendorPlanPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 252,
+                                        lineNumber: 281,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                lineNumber: 250,
+                                lineNumber: 279,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -583,7 +624,7 @@ function VendorPlanPage() {
                                         })
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 255,
+                                        lineNumber: 284,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -595,7 +636,7 @@ function VendorPlanPage() {
                                         children: "กลับเมนูหลัก"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 258,
+                                        lineNumber: 287,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -604,24 +645,24 @@ function VendorPlanPage() {
                                         children: "ออกจากระบบ"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 259,
+                                        lineNumber: 288,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                lineNumber: 254,
+                                lineNumber: 283,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                        lineNumber: 249,
+                        lineNumber: 278,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                    lineNumber: 248,
+                    lineNumber: 277,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -644,7 +685,7 @@ function VendorPlanPage() {
                                         children: "เลือกวันที่:"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 267,
+                                        lineNumber: 296,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -654,13 +695,13 @@ function VendorPlanPage() {
                                         style: styles.input
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 268,
+                                        lineNumber: 297,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                lineNumber: 266,
+                                lineNumber: 295,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -669,18 +710,18 @@ function VendorPlanPage() {
                                 children: "บันทึกรูปภาพ"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                lineNumber: 270,
+                                lineNumber: 299,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                        lineNumber: 265,
+                        lineNumber: 294,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                    lineNumber: 264,
+                    lineNumber: 293,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -710,7 +751,7 @@ function VendorPlanPage() {
                                                         children: "สายรถ"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 279,
+                                                        lineNumber: 308,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -725,13 +766,13 @@ function VendorPlanPage() {
                                                                 children: "Day Shift"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 280,
+                                                                lineNumber: 309,
                                                                 columnNumber: 120
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 280,
+                                                        lineNumber: 309,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -746,13 +787,13 @@ function VendorPlanPage() {
                                                                 children: "Night Shift"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 281,
+                                                                lineNumber: 310,
                                                                 columnNumber: 122
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 281,
+                                                        lineNumber: 310,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -763,13 +804,13 @@ function VendorPlanPage() {
                                                         children: "จำนวนการจ่าย Bus cost type"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 282,
+                                                        lineNumber: 311,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                lineNumber: 278,
+                                                lineNumber: 307,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -788,7 +829,7 @@ function VendorPlanPage() {
                                                                         children: String(dt.time).slice(0, 5)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 288,
+                                                                        lineNumber: 317,
                                                                         columnNumber: 23
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -799,18 +840,18 @@ function VendorPlanPage() {
                                                                         children: dt.is_entry ? 'เข้า' : 'ออก'
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 289,
+                                                                        lineNumber: 318,
                                                                         columnNumber: 23
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 287,
+                                                                lineNumber: 316,
                                                                 columnNumber: 21
                                                             }, this)
                                                         }, "d-".concat(dt.id), false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 286,
+                                                            lineNumber: 315,
                                                             columnNumber: 19
                                                         }, this)),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -826,17 +867,17 @@ function VendorPlanPage() {
                                                                 children: "รวมรถ"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 298,
+                                                                lineNumber: 327,
                                                                 columnNumber: 21
                                                             }, this)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 297,
+                                                            lineNumber: 326,
                                                             columnNumber: 19
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 296,
+                                                        lineNumber: 325,
                                                         columnNumber: 17
                                                     }, this),
                                                     nightTimes.map((dt)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -853,7 +894,7 @@ function VendorPlanPage() {
                                                                         children: String(dt.time).slice(0, 5)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 304,
+                                                                        lineNumber: 333,
                                                                         columnNumber: 23
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -864,18 +905,18 @@ function VendorPlanPage() {
                                                                         children: dt.is_entry ? 'เข้า' : 'ออก'
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 305,
+                                                                        lineNumber: 334,
                                                                         columnNumber: 23
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 303,
+                                                                lineNumber: 332,
                                                                 columnNumber: 21
                                                             }, this)
                                                         }, "n-".concat(dt.id), false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 302,
+                                                            lineNumber: 331,
                                                             columnNumber: 19
                                                         }, this)),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -891,17 +932,17 @@ function VendorPlanPage() {
                                                                 children: "รวมรถ"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 314,
+                                                                lineNumber: 343,
                                                                 columnNumber: 21
                                                             }, this)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 313,
+                                                            lineNumber: 342,
                                                             columnNumber: 19
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 312,
+                                                        lineNumber: 341,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -910,7 +951,7 @@ function VendorPlanPage() {
                                                         children: "รายเดือน"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 317,
+                                                        lineNumber: 346,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -919,7 +960,7 @@ function VendorPlanPage() {
                                                         children: "จอดรอ"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 318,
+                                                        lineNumber: 347,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -928,7 +969,7 @@ function VendorPlanPage() {
                                                         children: "OT เหมาวันปกติ"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 319,
+                                                        lineNumber: 348,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -937,7 +978,7 @@ function VendorPlanPage() {
                                                         children: "เหมาเที่ยว"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 320,
+                                                        lineNumber: 349,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -946,7 +987,7 @@ function VendorPlanPage() {
                                                         children: "OT เหมาวันหยุด"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 321,
+                                                        lineNumber: 350,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -955,13 +996,13 @@ function VendorPlanPage() {
                                                         children: "เหมาเที่ยวกะดึก"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 322,
+                                                        lineNumber: 351,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                lineNumber: 284,
+                                                lineNumber: 313,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -973,7 +1014,7 @@ function VendorPlanPage() {
                                                                     children: "คน"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 327,
+                                                                    lineNumber: 356,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -981,13 +1022,13 @@ function VendorPlanPage() {
                                                                     children: "รถ"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 328,
+                                                                    lineNumber: 357,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, "sub-d-".concat(dt.id), true, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 326,
+                                                            lineNumber: 355,
                                                             columnNumber: 19
                                                         }, this)),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -995,7 +1036,7 @@ function VendorPlanPage() {
                                                         children: "รถ"
                                                     }, "sub-day-sum", false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 332,
+                                                        lineNumber: 361,
                                                         columnNumber: 17
                                                     }, this),
                                                     nightTimes.map((dt)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -1005,7 +1046,7 @@ function VendorPlanPage() {
                                                                     children: "คน"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 335,
+                                                                    lineNumber: 364,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1013,13 +1054,13 @@ function VendorPlanPage() {
                                                                     children: "รถ"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 336,
+                                                                    lineNumber: 365,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, "sub-n-".concat(dt.id), true, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 334,
+                                                            lineNumber: 363,
                                                             columnNumber: 19
                                                         }, this)),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1027,19 +1068,19 @@ function VendorPlanPage() {
                                                         children: "รถ"
                                                     }, "sub-night-sum", false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 340,
+                                                        lineNumber: 369,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                lineNumber: 324,
+                                                lineNumber: 353,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 277,
+                                        lineNumber: 306,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -1059,7 +1100,7 @@ function VendorPlanPage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 346,
+                                                                    lineNumber: 375,
                                                                     columnNumber: 46
                                                                 }, this),
                                                                 " ",
@@ -1067,13 +1108,14 @@ function VendorPlanPage() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 346,
+                                                            lineNumber: 375,
                                                             columnNumber: 19
                                                         }, this),
                                                         dayTimes.map((dt)=>{
-                                                            var _countsByDepartTime_dt_id;
+                                                            var _countsByDepartTime_dt_id, _carPlanByDepartTime_dt_id;
                                                             const people = Number((countsByDepartTime === null || countsByDepartTime === void 0 ? void 0 : (_countsByDepartTime_dt_id = countsByDepartTime[dt.id]) === null || _countsByDepartTime_dt_id === void 0 ? void 0 : _countsByDepartTime_dt_id[r.id]) || 0);
-                                                            const cars = calcVehicles(people);
+                                                            const override = carPlanByDepartTime === null || carPlanByDepartTime === void 0 ? void 0 : (_carPlanByDepartTime_dt_id = carPlanByDepartTime[dt.id]) === null || _carPlanByDepartTime_dt_id === void 0 ? void 0 : _carPlanByDepartTime_dt_id[r.id];
+                                                            const cars = override != null ? Number(override) || 0 : calcVehicles(people);
                                                             return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                                                                 children: [
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1082,12 +1124,12 @@ function VendorPlanPage() {
                                                                             children: people
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                            lineNumber: 353,
+                                                                            lineNumber: 383,
                                                                             columnNumber: 65
                                                                         }, this) : ""
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 353,
+                                                                        lineNumber: 383,
                                                                         columnNumber: 25
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1099,26 +1141,28 @@ function VendorPlanPage() {
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                            lineNumber: 354,
+                                                                            lineNumber: 384,
                                                                             columnNumber: 63
                                                                         }, this) : ""
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 354,
+                                                                        lineNumber: 384,
                                                                         columnNumber: 25
                                                                     }, this)
                                                                 ]
                                                             }, "cell-d-".concat(dt.id, "-").concat(r.id), true, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 352,
+                                                                lineNumber: 382,
                                                                 columnNumber: 23
                                                             }, this);
                                                         }),
                                                         (()=>{
                                                             const dayCars = dayTimes.reduce((acc, dt)=>{
-                                                                var _countsByDepartTime_dt_id;
+                                                                var _countsByDepartTime_dt_id, _carPlanByDepartTime_dt_id;
                                                                 const people = Number((countsByDepartTime === null || countsByDepartTime === void 0 ? void 0 : (_countsByDepartTime_dt_id = countsByDepartTime[dt.id]) === null || _countsByDepartTime_dt_id === void 0 ? void 0 : _countsByDepartTime_dt_id[r.id]) || 0);
-                                                                return acc + calcVehicles(people);
+                                                                const override = carPlanByDepartTime === null || carPlanByDepartTime === void 0 ? void 0 : (_carPlanByDepartTime_dt_id = carPlanByDepartTime[dt.id]) === null || _carPlanByDepartTime_dt_id === void 0 ? void 0 : _carPlanByDepartTime_dt_id[r.id];
+                                                                const cars = override != null ? Number(override) || 0 : calcVehicles(people);
+                                                                return acc + cars;
                                                             }, 0);
                                                             return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
                                                                 style: styles.tdCell,
@@ -1129,19 +1173,20 @@ function VendorPlanPage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 365,
+                                                                    lineNumber: 397,
                                                                     columnNumber: 93
                                                                 }, this) : ''
                                                             }, "cell-day-sum-".concat(r.id), false, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 365,
+                                                                lineNumber: 397,
                                                                 columnNumber: 23
                                                             }, this);
                                                         })(),
                                                         nightTimes.map((dt)=>{
-                                                            var _countsByDepartTime_dt_id;
+                                                            var _countsByDepartTime_dt_id, _carPlanByDepartTime_dt_id;
                                                             const people = Number((countsByDepartTime === null || countsByDepartTime === void 0 ? void 0 : (_countsByDepartTime_dt_id = countsByDepartTime[dt.id]) === null || _countsByDepartTime_dt_id === void 0 ? void 0 : _countsByDepartTime_dt_id[r.id]) || 0);
-                                                            const cars = calcVehicles(people);
+                                                            const override = carPlanByDepartTime === null || carPlanByDepartTime === void 0 ? void 0 : (_carPlanByDepartTime_dt_id = carPlanByDepartTime[dt.id]) === null || _carPlanByDepartTime_dt_id === void 0 ? void 0 : _carPlanByDepartTime_dt_id[r.id];
+                                                            const cars = override != null ? Number(override) || 0 : calcVehicles(people);
                                                             return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                                                                 children: [
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1150,12 +1195,12 @@ function VendorPlanPage() {
                                                                             children: people
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                            lineNumber: 374,
+                                                                            lineNumber: 407,
                                                                             columnNumber: 65
                                                                         }, this) : ""
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 374,
+                                                                        lineNumber: 407,
                                                                         columnNumber: 25
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1167,26 +1212,28 @@ function VendorPlanPage() {
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                            lineNumber: 375,
+                                                                            lineNumber: 408,
                                                                             columnNumber: 63
                                                                         }, this) : ""
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 375,
+                                                                        lineNumber: 408,
                                                                         columnNumber: 25
                                                                     }, this)
                                                                 ]
                                                             }, "cell-n-".concat(dt.id, "-").concat(r.id), true, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 373,
+                                                                lineNumber: 406,
                                                                 columnNumber: 23
                                                             }, this);
                                                         }),
                                                         (()=>{
                                                             const nightCars = nightTimes.reduce((acc, dt)=>{
-                                                                var _countsByDepartTime_dt_id;
+                                                                var _countsByDepartTime_dt_id, _carPlanByDepartTime_dt_id;
                                                                 const people = Number((countsByDepartTime === null || countsByDepartTime === void 0 ? void 0 : (_countsByDepartTime_dt_id = countsByDepartTime[dt.id]) === null || _countsByDepartTime_dt_id === void 0 ? void 0 : _countsByDepartTime_dt_id[r.id]) || 0);
-                                                                return acc + calcVehicles(people);
+                                                                const override = carPlanByDepartTime === null || carPlanByDepartTime === void 0 ? void 0 : (_carPlanByDepartTime_dt_id = carPlanByDepartTime[dt.id]) === null || _carPlanByDepartTime_dt_id === void 0 ? void 0 : _carPlanByDepartTime_dt_id[r.id];
+                                                                const cars = override != null ? Number(override) || 0 : calcVehicles(people);
+                                                                return acc + cars;
                                                             }, 0);
                                                             return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
                                                                 style: styles.tdCell,
@@ -1197,12 +1244,12 @@ function VendorPlanPage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 386,
+                                                                    lineNumber: 421,
                                                                     columnNumber: 97
                                                                 }, this) : ''
                                                             }, "cell-night-sum-".concat(r.id), false, {
                                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                lineNumber: 386,
+                                                                lineNumber: 421,
                                                                 columnNumber: 23
                                                             }, this);
                                                         })(),
@@ -1212,7 +1259,7 @@ function VendorPlanPage() {
                                                             children: (payments === null || payments === void 0 ? void 0 : (_payments_r_id = payments[r.id]) === null || _payments_r_id === void 0 ? void 0 : _payments_r_id.pay_flat) || 0 || ''
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 389,
+                                                            lineNumber: 424,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1221,7 +1268,7 @@ function VendorPlanPage() {
                                                             children: (payments === null || payments === void 0 ? void 0 : (_payments_r_id1 = payments[r.id]) === null || _payments_r_id1 === void 0 ? void 0 : _payments_r_id1.pay_wait) || 0 || ''
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 390,
+                                                            lineNumber: 425,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1230,7 +1277,7 @@ function VendorPlanPage() {
                                                             children: (payments === null || payments === void 0 ? void 0 : (_payments_r_id2 = payments[r.id]) === null || _payments_r_id2 === void 0 ? void 0 : _payments_r_id2.pay_ot_normal) || 0 || ''
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 391,
+                                                            lineNumber: 426,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1239,7 +1286,7 @@ function VendorPlanPage() {
                                                             children: (payments === null || payments === void 0 ? void 0 : (_payments_r_id3 = payments[r.id]) === null || _payments_r_id3 === void 0 ? void 0 : _payments_r_id3.pay_trip) || 0 || ''
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 392,
+                                                            lineNumber: 427,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1248,7 +1295,7 @@ function VendorPlanPage() {
                                                             children: (payments === null || payments === void 0 ? void 0 : (_payments_r_id4 = payments[r.id]) === null || _payments_r_id4 === void 0 ? void 0 : _payments_r_id4.pay_ot_holiday) || 0 || ''
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 393,
+                                                            lineNumber: 428,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1257,13 +1304,13 @@ function VendorPlanPage() {
                                                             children: (payments === null || payments === void 0 ? void 0 : (_payments_r_id5 = payments[r.id]) === null || _payments_r_id5 === void 0 ? void 0 : _payments_r_id5.pay_trip_night) || 0 || ''
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 394,
+                                                            lineNumber: 429,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, r.id, true, {
                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                    lineNumber: 345,
+                                                    lineNumber: 374,
                                                     columnNumber: 17
                                                 }, this);
                                             }),
@@ -1274,7 +1321,7 @@ function VendorPlanPage() {
                                                         children: "รวม"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 399,
+                                                        lineNumber: 434,
                                                         columnNumber: 17
                                                     }, this),
                                                     dayTimes.map((dt)=>{
@@ -1288,12 +1335,12 @@ function VendorPlanPage() {
                                                                         children: totals.peopleTotals[dt.id]
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 403,
+                                                                        lineNumber: 438,
                                                                         columnNumber: 66
                                                                     }, this) : ''
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 402,
+                                                                    lineNumber: 437,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1302,18 +1349,18 @@ function VendorPlanPage() {
                                                                         children: "".concat(totals.carTotals[dt.id], " คัน")
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 406,
+                                                                        lineNumber: 441,
                                                                         columnNumber: 63
                                                                     }, this) : ''
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 405,
+                                                                    lineNumber: 440,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, "sum-d-".concat(dt.id), true, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 401,
+                                                            lineNumber: 436,
                                                             columnNumber: 19
                                                         }, this);
                                                     }),
@@ -1329,12 +1376,12 @@ function VendorPlanPage() {
                                                             }, 0), " คัน")
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 411,
+                                                            lineNumber: 446,
                                                             columnNumber: 123
                                                         }, this) : ''
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 411,
+                                                        lineNumber: 446,
                                                         columnNumber: 17
                                                     }, this),
                                                     nightTimes.map((dt)=>{
@@ -1348,12 +1395,12 @@ function VendorPlanPage() {
                                                                         children: totals.peopleTotals[dt.id]
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 415,
+                                                                        lineNumber: 450,
                                                                         columnNumber: 66
                                                                     }, this) : ''
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 414,
+                                                                    lineNumber: 449,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1362,18 +1409,18 @@ function VendorPlanPage() {
                                                                         children: "".concat(totals.carTotals[dt.id], " คัน")
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                        lineNumber: 418,
+                                                                        lineNumber: 453,
                                                                         columnNumber: 63
                                                                     }, this) : ''
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                                    lineNumber: 417,
+                                                                    lineNumber: 452,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, "sum-n-".concat(dt.id), true, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 413,
+                                                            lineNumber: 448,
                                                             columnNumber: 19
                                                         }, this);
                                                     }),
@@ -1389,12 +1436,12 @@ function VendorPlanPage() {
                                                             }, 0), " คัน")
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 423,
+                                                            lineNumber: 458,
                                                             columnNumber: 125
                                                         }, this) : ''
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 423,
+                                                        lineNumber: 458,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1403,12 +1450,12 @@ function VendorPlanPage() {
                                                             children: totals.payTotals.pay_flat
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 424,
+                                                            lineNumber: 459,
                                                             columnNumber: 86
                                                         }, this) : ''
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 424,
+                                                        lineNumber: 459,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1417,12 +1464,12 @@ function VendorPlanPage() {
                                                             children: totals.payTotals.pay_wait
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 425,
+                                                            lineNumber: 460,
                                                             columnNumber: 86
                                                         }, this) : ''
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 425,
+                                                        lineNumber: 460,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1431,12 +1478,12 @@ function VendorPlanPage() {
                                                             children: totals.payTotals.pay_ot_normal
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 426,
+                                                            lineNumber: 461,
                                                             columnNumber: 91
                                                         }, this) : ''
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 426,
+                                                        lineNumber: 461,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1445,12 +1492,12 @@ function VendorPlanPage() {
                                                             children: totals.payTotals.pay_trip
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 427,
+                                                            lineNumber: 462,
                                                             columnNumber: 86
                                                         }, this) : ''
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 427,
+                                                        lineNumber: 462,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1459,12 +1506,12 @@ function VendorPlanPage() {
                                                             children: totals.payTotals.pay_ot_holiday
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 428,
+                                                            lineNumber: 463,
                                                             columnNumber: 92
                                                         }, this) : ''
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 428,
+                                                        lineNumber: 463,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1473,35 +1520,35 @@ function VendorPlanPage() {
                                                             children: totals.payTotals.pay_trip_night
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                            lineNumber: 429,
+                                                            lineNumber: 464,
                                                             columnNumber: 92
                                                         }, this) : ''
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                        lineNumber: 429,
+                                                        lineNumber: 464,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                                lineNumber: 398,
+                                                lineNumber: 433,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                        lineNumber: 343,
+                                        lineNumber: 372,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                lineNumber: 276,
+                                lineNumber: 305,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                            lineNumber: 275,
+                            lineNumber: 304,
                             columnNumber: 11
                         }, this),
                         isAdminga && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1518,7 +1565,7 @@ function VendorPlanPage() {
                                     children: "บันทึกข้อมูล"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                    lineNumber: 436,
+                                    lineNumber: 471,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1527,19 +1574,19 @@ function VendorPlanPage() {
                                     children: "ยกเลิก"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                    lineNumber: 437,
+                                    lineNumber: 472,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                            lineNumber: 435,
+                            lineNumber: 470,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                    lineNumber: 274,
+                    lineNumber: 303,
                     columnNumber: 9
                 }, this),
                 editModal.open && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -1549,7 +1596,7 @@ function VendorPlanPage() {
                             onClick: closeEdit
                         }, void 0, false, {
                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                            lineNumber: 443,
+                            lineNumber: 478,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1561,7 +1608,7 @@ function VendorPlanPage() {
                                     children: "แก้ไขจำนวนการจ่าย"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                    lineNumber: 445,
+                                    lineNumber: 480,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1575,13 +1622,13 @@ function VendorPlanPage() {
                                             children: (_editModal_route = editModal.route) === null || _editModal_route === void 0 ? void 0 : _editModal_route.name
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                            lineNumber: 447,
+                                            lineNumber: 482,
                                             columnNumber: 24
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                    lineNumber: 446,
+                                    lineNumber: 481,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1592,7 +1639,7 @@ function VendorPlanPage() {
                                             children: "จำนวน:"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                            lineNumber: 450,
+                                            lineNumber: 485,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1610,13 +1657,13 @@ function VendorPlanPage() {
                                             autoFocus: true
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                            lineNumber: 451,
+                                            lineNumber: 486,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                    lineNumber: 449,
+                                    lineNumber: 484,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1628,7 +1675,7 @@ function VendorPlanPage() {
                                             children: "บันทึก"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                            lineNumber: 457,
+                                            lineNumber: 492,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1637,19 +1684,19 @@ function VendorPlanPage() {
                                             children: "ยกเลิก"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                            lineNumber: 458,
+                                            lineNumber: 493,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/vendor-plan/page.jsx",
-                                    lineNumber: 456,
+                                    lineNumber: 491,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/vendor-plan/page.jsx",
-                            lineNumber: 444,
+                            lineNumber: 479,
                             columnNumber: 13
                         }, this)
                     ]
@@ -1657,16 +1704,16 @@ function VendorPlanPage() {
             ]
         }, void 0, true, {
             fileName: "[project]/src/app/vendor-plan/page.jsx",
-            lineNumber: 246,
+            lineNumber: 275,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/vendor-plan/page.jsx",
-        lineNumber: 245,
+        lineNumber: 274,
         columnNumber: 5
     }, this);
 }
-_s(VendorPlanPage, "fljNNURcshBQhVemE2tlu0qORfc=", false, function() {
+_s(VendorPlanPage, "mN3Spv5Uq80v9VbGAkgYErkn+AY=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
     ];
