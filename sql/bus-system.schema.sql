@@ -138,6 +138,16 @@ ALTER TABLE bookings ADD CONSTRAINT IF NOT EXISTS bookings_product_fk FOREIGN KE
 -- Removed legacy Around_thetruck table (unused)
 
 -- 9) Seed data (optional)
+
+-- Monthly vendor payments defaults (for pay_flat only)
+CREATE TABLE IF NOT EXISTS vendor_monthly_payments (
+  month_start DATE NOT NULL,
+  route_id INT NOT NULL,
+  pay_flat INT NOT NULL DEFAULT 0,
+  updated_by INT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (month_start, route_id)
+) CHARSET=utf8mb4;
 INSERT IGNORE INTO plants (code, name) VALUES ('AC','AC'),('RF','RF'),('SSC','SSC');
 
 INSERT IGNORE INTO departments (plant_id, code, name)

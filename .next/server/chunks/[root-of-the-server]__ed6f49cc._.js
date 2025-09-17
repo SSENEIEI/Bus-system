@@ -522,6 +522,17 @@ async function initDatabase(options = {}) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
     await ensureForeignKey('vendor_payments', 'vp_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
     await ensureForeignKey('vendor_payments', 'vp_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.x.1) Monthly vendor payments defaults (for pay_flat only)
+    await exec(`CREATE TABLE IF NOT EXISTS vendor_monthly_payments (
+      month_start DATE NOT NULL,                -- first day of month (e.g., 2025-09-01)
+      route_id INT NOT NULL,
+      pay_flat INT NOT NULL DEFAULT 0,          -- รายเดือน (เหมาจ่าย) สำหรับทั้งเดือน
+      updated_by INT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (month_start, route_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await ensureForeignKey('vendor_monthly_payments', 'vmp_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
+    await ensureForeignKey('vendor_monthly_payments', 'vmp_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
     // 6.y) Vendor rates per route (persistent Cost values)
     await exec(`CREATE TABLE IF NOT EXISTS vendor_rates (
     route_id INT NOT NULL,
@@ -800,11 +811,45 @@ async function GET(request) {
     }, {
         status: 400
     });
-    const rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT the_date, route_id, pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
+    // Fetch daily rows
+    const dailyRows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT the_date, route_id, pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
      FROM vendor_payments WHERE the_date = ?`, [
             the_date
         ]));
-    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows);
+    // Merge in monthly overrides for pay_flat if any
+    const dt = new Date(the_date);
+    const monthStart = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1)).toISOString().slice(0, 10);
+    const monthlyRows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT month_start, route_id, pay_flat FROM vendor_monthly_payments WHERE month_start = ?`, [
+            monthStart
+        ]));
+    const monthlyMap = new Map(monthlyRows.map((r)=>[
+            String(r.route_id),
+            Number(r.pay_flat) || 0
+        ]));
+    // Build map of daily for quick override
+    const byRoute = new Map();
+    for (const r of dailyRows)byRoute.set(String(r.route_id), {
+        ...r
+    });
+    // Ensure all routes with monthly exist in output
+    for (const [routeId, flat] of monthlyMap.entries()){
+        const existing = byRoute.get(routeId);
+        if (existing) {
+            existing.pay_flat = flat; // override daily pay_flat with monthly
+        } else {
+            byRoute.set(routeId, {
+                the_date,
+                route_id: Number(routeId),
+                pay_flat: flat,
+                pay_wait: 0,
+                pay_ot_normal: 0,
+                pay_trip: 0,
+                pay_ot_holiday: 0,
+                pay_trip_night: 0
+            });
+        }
+    }
+    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(Array.from(byRoute.values()));
 }
 async function POST(request) {
     const user = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$auth$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getUserFromRequest"])(request);
@@ -840,14 +885,37 @@ async function POST(request) {
         status: 400
     });
     const val = Math.max(0, Number(value) || 0);
-    await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
-     VALUES (?,?,?,?)
-     ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`, [
-            the_date,
-            route_id,
-            val,
-            user.id || null
-        ]));
+    if (key === 'pay_flat') {
+        // Save as a monthly value so it appears for all days in this month
+        const dt = new Date(the_date);
+        const monthStart = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1)).toISOString().slice(0, 10);
+        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_monthly_payments (month_start, route_id, pay_flat, updated_by)
+       VALUES (?,?,?,?)
+       ON DUPLICATE KEY UPDATE pay_flat=VALUES(pay_flat), updated_by=VALUES(updated_by)`, [
+                monthStart,
+                route_id,
+                val,
+                user.id || null
+            ]));
+        // Also upsert the daily record for the current date to reflect immediately
+        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_payments (the_date, route_id, pay_flat, updated_by)
+       VALUES (?,?,?,?)
+       ON DUPLICATE KEY UPDATE pay_flat=VALUES(pay_flat), updated_by=VALUES(updated_by)`, [
+                the_date,
+                route_id,
+                val,
+                user.id || null
+            ]));
+    } else {
+        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
+       VALUES (?,?,?,?)
+       ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`, [
+                the_date,
+                route_id,
+                val,
+                user.id || null
+            ]));
+    }
     return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
         ok: true
     });

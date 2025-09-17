@@ -141,6 +141,20 @@ CREATE TABLE IF NOT EXISTS bookings (
 -- Removed legacy Around_thetruck table (unused)
 
 -- 9) Seed data (optional)
+
+-- 6.x.1) Monthly vendor payments defaults (for pay_flat only)
+CREATE TABLE IF NOT EXISTS vendor_monthly_payments (
+  month_start DATE NOT NULL,                -- first day of month (e.g., 2025-09-01)
+  route_id INT NOT NULL,
+  pay_flat INT NOT NULL DEFAULT 0,          -- รายเดือน (เหมาจ่าย) สำหรับทั้งเดือน
+  updated_by INT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (month_start, route_id),
+  KEY vmp_route_idx (route_id),
+  KEY vmp_updated_by_idx (updated_by),
+  CONSTRAINT vmp_route_fk FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE,
+  CONSTRAINT vmp_updated_by_fk FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) CHARSET=utf8mb4;
 INSERT IGNORE INTO plants (code, name) VALUES ('AC','AC'),('RF','RF'),('SSC','SSC');
 
 INSERT IGNORE INTO departments (plant_id, code, name)

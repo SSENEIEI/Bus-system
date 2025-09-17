@@ -16,12 +16,35 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const the_date = searchParams.get('date');
   if (!the_date) return NextResponse.json({ error: 'missing date' }, { status: 400 });
-  const rows = await withInitRetry(() => query(
+  // Fetch daily rows
+  const dailyRows = await withInitRetry(() => query(
     `SELECT the_date, route_id, pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
      FROM vendor_payments WHERE the_date = ?`,
     [the_date]
   ));
-  return NextResponse.json(rows);
+
+  // Merge in monthly overrides for pay_flat if any
+  const dt = new Date(the_date);
+  const monthStart = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1)).toISOString().slice(0,10);
+  const monthlyRows = await withInitRetry(() => query(
+    `SELECT month_start, route_id, pay_flat FROM vendor_monthly_payments WHERE month_start = ?`,
+    [monthStart]
+  ));
+  const monthlyMap = new Map(monthlyRows.map(r => [String(r.route_id), Number(r.pay_flat)||0]));
+
+  // Build map of daily for quick override
+  const byRoute = new Map();
+  for (const r of dailyRows) byRoute.set(String(r.route_id), { ...r });
+  // Ensure all routes with monthly exist in output
+  for (const [routeId, flat] of monthlyMap.entries()) {
+    const existing = byRoute.get(routeId);
+    if (existing) {
+      existing.pay_flat = flat; // override daily pay_flat with monthly
+    } else {
+      byRoute.set(routeId, { the_date, route_id: Number(routeId), pay_flat: flat, pay_wait: 0, pay_ot_normal: 0, pay_trip: 0, pay_ot_holiday: 0, pay_trip_night: 0 });
+    }
+  }
+  return NextResponse.json(Array.from(byRoute.values()));
 }
 
 export async function POST(request) {
@@ -36,11 +59,30 @@ export async function POST(request) {
   const allowed = ['pay_flat','pay_wait','pay_ot_normal','pay_trip','pay_ot_holiday','pay_trip_night'];
   if (!allowed.includes(key)) return NextResponse.json({ error: 'bad key' }, { status: 400 });
   const val = Math.max(0, Number(value) || 0);
-  await withInitRetry(() => query(
-    `INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
-     VALUES (?,?,?,?)
-     ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`,
-    [the_date, route_id, val, user.id || null]
-  ));
+  if (key === 'pay_flat') {
+    // Save as a monthly value so it appears for all days in this month
+    const dt = new Date(the_date);
+    const monthStart = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1)).toISOString().slice(0,10);
+    await withInitRetry(() => query(
+      `INSERT INTO vendor_monthly_payments (month_start, route_id, pay_flat, updated_by)
+       VALUES (?,?,?,?)
+       ON DUPLICATE KEY UPDATE pay_flat=VALUES(pay_flat), updated_by=VALUES(updated_by)`,
+      [monthStart, route_id, val, user.id || null]
+    ));
+    // Also upsert the daily record for the current date to reflect immediately
+    await withInitRetry(() => query(
+      `INSERT INTO vendor_payments (the_date, route_id, pay_flat, updated_by)
+       VALUES (?,?,?,?)
+       ON DUPLICATE KEY UPDATE pay_flat=VALUES(pay_flat), updated_by=VALUES(updated_by)`,
+      [the_date, route_id, val, user.id || null]
+    ));
+  } else {
+    await withInitRetry(() => query(
+      `INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
+       VALUES (?,?,?,?)
+       ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`,
+      [the_date, route_id, val, user.id || null]
+    ));
+  }
   return NextResponse.json({ ok: true });
 }

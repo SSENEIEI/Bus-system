@@ -423,6 +423,18 @@ export async function initDatabase(options = {}) {
   await ensureForeignKey('vendor_payments', 'vp_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
   await ensureForeignKey('vendor_payments', 'vp_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
 
+  // 6.x.1) Monthly vendor payments defaults (for pay_flat only)
+  await exec(`CREATE TABLE IF NOT EXISTS vendor_monthly_payments (
+      month_start DATE NOT NULL,                -- first day of month (e.g., 2025-09-01)
+      route_id INT NOT NULL,
+      pay_flat INT NOT NULL DEFAULT 0,          -- รายเดือน (เหมาจ่าย) สำหรับทั้งเดือน
+      updated_by INT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (month_start, route_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await ensureForeignKey('vendor_monthly_payments', 'vmp_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
+  await ensureForeignKey('vendor_monthly_payments', 'vmp_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+
   // 6.y) Vendor rates per route (persistent Cost values)
   await exec(`CREATE TABLE IF NOT EXISTS vendor_rates (
     route_id INT NOT NULL,
