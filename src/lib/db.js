@@ -435,6 +435,7 @@ export async function initDatabase(options = {}) {
       route_id INT NOT NULL,
       pay_flat INT NOT NULL DEFAULT 0,           -- เหมาจ่าย
       pay_wait INT NOT NULL DEFAULT 0,           -- จอดรอ
+      pay_total_cars INT NOT NULL DEFAULT 0,     -- รวมรถ (ใหม่)
       pay_ot_normal INT NOT NULL DEFAULT 0,      -- OT หมวดวันปกติ
       pay_trip INT NOT NULL DEFAULT 0,           -- เหมานเที่ยว
       pay_ot_holiday INT NOT NULL DEFAULT 0,     -- OT หมวดวันหยุด
@@ -445,6 +446,8 @@ export async function initDatabase(options = {}) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await ensureForeignKey('vendor_payments', 'vp_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
   await ensureForeignKey('vendor_payments', 'vp_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+  // Add new column for existing deployments (MySQL 8+ supports IF NOT EXISTS)
+  await exec(`ALTER TABLE vendor_payments ADD COLUMN IF NOT EXISTS pay_total_cars INT NOT NULL DEFAULT 0`);
 
   // 6.x.1) Monthly vendor payments defaults (for pay_flat only)
   await exec(`CREATE TABLE IF NOT EXISTS vendor_monthly_payments (
@@ -463,6 +466,7 @@ export async function initDatabase(options = {}) {
     route_id INT NOT NULL,
     rate_flat DECIMAL(12,2) NOT NULL DEFAULT 0,
     rate_wait DECIMAL(12,2) NOT NULL DEFAULT 0,
+    rate_total_cars DECIMAL(12,2) NOT NULL DEFAULT 0,
     rate_ot_normal DECIMAL(12,2) NOT NULL DEFAULT 0,
     rate_trip DECIMAL(12,2) NOT NULL DEFAULT 0,
     rate_ot_holiday DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -473,6 +477,7 @@ export async function initDatabase(options = {}) {
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await ensureForeignKey('vendor_rates', 'vr_route_fk', 'FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE');
   await ensureForeignKey('vendor_rates', 'vr_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
+  await exec(`ALTER TABLE vendor_rates ADD COLUMN IF NOT EXISTS rate_total_cars DECIMAL(12,2) NOT NULL DEFAULT 0`);
 
   // 7) (Optional) Legacy tables FKs
   await exec(`CREATE TABLE IF NOT EXISTS bookings (
