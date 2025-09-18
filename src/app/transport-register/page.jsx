@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
-import { fetchJSON, postJSON } from '@/lib/http';
+import { fetchJSON, postJSON, deleteJSON } from '@/lib/http';
 import { FaBus } from 'react-icons/fa';
 import { formatWelcome } from '@/lib/formatters';
 import { useRouter } from 'next/navigation';
@@ -235,8 +235,15 @@ export default function TransportRegister() {
 
   const handleDelete = async (id) => {
     if (!confirm('ต้องการลบข้อมูลนี้หรือไม่?')) return;
-    try { await postJSON(`/api/transport/registrations?id=${id}`, { _method:'DELETE' }); }
-    catch(e){ alert(e?.message || 'ลบข้อมูลล้มเหลว'); return; }
+    try {
+      await deleteJSON(`/api/transport/registrations?id=${id}`);
+    } catch (e) {
+      // Provide more specific feedback
+      if (e?.status === 403) alert('ไม่มีสิทธิ์ลบรายการนี้');
+      else if (e?.status === 401) { alert('กรุณาเข้าสู่ระบบใหม่'); router.push('/'); }
+      else alert(e?.message || 'ลบข้อมูลล้มเหลว');
+      return;
+    }
     fetchList();
   };
 
