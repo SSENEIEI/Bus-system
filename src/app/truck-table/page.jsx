@@ -200,7 +200,6 @@ export default function TruckTable() {
   //
   //
   //
-  //
   const openCarEdit = (dt, route, ttl) => {
     if (!isAdminga) return; // only adminga can edit
     const curr = Number(carPlan?.[dt.id]?.[route.id] ?? calcVehicles(ttl));
@@ -501,8 +500,8 @@ function blendWithWhite(hex, alpha){
 }
 // Derive per-time body and car cell backgrounds
 function getTimeBodyBg(idx){
-  const base = getTimeColor(idx);
-  return blendWithWhite(base, 0.18); // very light shade
+  // Changed: return pure white per user request (previously blended color)
+  return '#ffffff';
 }
 function getTimeTotalBg(idx){
   const base = getTimeColor(idx);

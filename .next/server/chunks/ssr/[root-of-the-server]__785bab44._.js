@@ -551,7 +551,6 @@ function TruckTable() {
     //
     //
     //
-    //
     const openCarEdit = (dt, route, ttl)=>{
         if (!isAdminga) return; // only adminga can edit
         const curr = Number(carPlan?.[dt.id]?.[route.id] ?? calcVehicles(ttl));
@@ -659,7 +658,7 @@ function TruckTable() {
                                         children: "ตารางจัดรถขากลับ"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                        lineNumber: 266,
+                                        lineNumber: 265,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -673,13 +672,13 @@ function TruckTable() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                        lineNumber: 267,
+                                        lineNumber: 266,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                lineNumber: 265,
+                                lineNumber: 264,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -701,7 +700,7 @@ function TruckTable() {
                                         })
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                        lineNumber: 272,
+                                        lineNumber: 271,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -713,7 +712,7 @@ function TruckTable() {
                                         children: "กลับเมนูหลัก"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                        lineNumber: 273,
+                                        lineNumber: 272,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -722,24 +721,24 @@ function TruckTable() {
                                         children: "ออกจากระบบ"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                        lineNumber: 274,
+                                        lineNumber: 273,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                lineNumber: 271,
+                                lineNumber: 270,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/truck-table/page.jsx",
-                        lineNumber: 264,
+                        lineNumber: 263,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/app/truck-table/page.jsx",
-                    lineNumber: 263,
+                    lineNumber: 262,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -765,7 +764,7 @@ function TruckTable() {
                                                 children: "เลือกวันที่:"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                lineNumber: 284,
+                                                lineNumber: 283,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -775,13 +774,13 @@ function TruckTable() {
                                                 style: styles.input
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                lineNumber: 285,
+                                                lineNumber: 284,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                        lineNumber: 283,
+                                        lineNumber: 282,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -796,7 +795,7 @@ function TruckTable() {
                                                 children: "กะ:"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                lineNumber: 288,
+                                                lineNumber: 287,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -808,18 +807,18 @@ function TruckTable() {
                                                         children: s.name_th || s.name_en
                                                     }, s.id, false, {
                                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                                        lineNumber: 290,
+                                                        lineNumber: 289,
                                                         columnNumber: 34
                                                     }, this))
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                lineNumber: 289,
+                                                lineNumber: 288,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                        lineNumber: 287,
+                                        lineNumber: 286,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -839,7 +838,7 @@ function TruckTable() {
                                                 children: "บันทึกรูปภาพ"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                lineNumber: 294,
+                                                lineNumber: 293,
                                                 columnNumber: 15
                                             }, this),
                                             isAdminga && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -853,24 +852,24 @@ function TruckTable() {
                                                 children: autoHideEnabled ? 'ปิดซ่อนอัตโนมัติ' : 'ซ่อนอัตโนมัติ'
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                lineNumber: 296,
+                                                lineNumber: 295,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                        lineNumber: 293,
+                                        lineNumber: 292,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                lineNumber: 282,
+                                lineNumber: 281,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/app/truck-table/page.jsx",
-                            lineNumber: 281,
+                            lineNumber: 280,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -899,7 +898,7 @@ function TruckTable() {
                                                             children: "สายรถ"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                            lineNumber: 309,
+                                                            lineNumber: 308,
                                                             columnNumber: 17
                                                         }, this),
                                                         displayDepartTimes.map((dt, idx)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -919,7 +918,7 @@ function TruckTable() {
                                                                                 children: t
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                                lineNumber: 316,
+                                                                                lineNumber: 315,
                                                                                 columnNumber: 148
                                                                             }, this)
                                                                         ]
@@ -927,13 +926,13 @@ function TruckTable() {
                                                                 })()
                                                             }, dt.id, false, {
                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                lineNumber: 311,
+                                                                lineNumber: 310,
                                                                 columnNumber: 19
                                                             }, this))
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                                    lineNumber: 308,
+                                                    lineNumber: 307,
                                                     columnNumber: 15
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -944,7 +943,7 @@ function TruckTable() {
                                                                         children: p.code
                                                                     }, `p-${dt.id}-${p.id}`, false, {
                                                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                        lineNumber: 323,
+                                                                        lineNumber: 322,
                                                                         columnNumber: 44
                                                                     }, this)),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -952,7 +951,7 @@ function TruckTable() {
                                                                     children: "TTL"
                                                                 }, `ttl-${dt.id}`, false, {
                                                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                    lineNumber: 324,
+                                                                    lineNumber: 323,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -967,31 +966,31 @@ function TruckTable() {
                                                                         "จำนวน",
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("wbr", {}, void 0, false, {
                                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                            lineNumber: 329,
+                                                                            lineNumber: 328,
                                                                             columnNumber: 28
                                                                         }, this),
                                                                         "รถ"
                                                                     ]
                                                                 }, `car-${dt.id}`, true, {
                                                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                    lineNumber: 325,
+                                                                    lineNumber: 324,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, `hdr-${dt.id}`, true, {
                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                            lineNumber: 322,
+                                                            lineNumber: 321,
                                                             columnNumber: 19
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                                    lineNumber: 320,
+                                                    lineNumber: 319,
                                                     columnNumber: 15
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                            lineNumber: 307,
+                                            lineNumber: 306,
                                             columnNumber: 13
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -1009,7 +1008,7 @@ function TruckTable() {
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                        lineNumber: 338,
+                                                                        lineNumber: 337,
                                                                         columnNumber: 46
                                                                     }, this),
                                                                     " ",
@@ -1017,13 +1016,13 @@ function TruckTable() {
                                                                         children: r.name
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                        lineNumber: 338,
+                                                                        lineNumber: 337,
                                                                         columnNumber: 96
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                lineNumber: 338,
+                                                                lineNumber: 337,
                                                                 columnNumber: 19
                                                             }, this),
                                                             displayDepartTimes.map((dt, dtIdx)=>{
@@ -1052,12 +1051,12 @@ function TruckTable() {
                                                                                     ]
                                                                                 }, void 0, true, {
                                                                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                                    lineNumber: 348,
+                                                                                    lineNumber: 347,
                                                                                     columnNumber: 40
                                                                                 }, this) : ''
                                                                             }, `cell-${dt.id}-${r.id}-${pid}`, false, {
                                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                                lineNumber: 347,
+                                                                                lineNumber: 346,
                                                                                 columnNumber: 29
                                                                             }, this);
                                                                         }),
@@ -1076,12 +1075,12 @@ function TruckTable() {
                                                                                 ]
                                                                             }, void 0, true, {
                                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                                lineNumber: 352,
+                                                                                lineNumber: 351,
                                                                                 columnNumber: 128
                                                                             }, this) : ''
                                                                         }, `ttl-${dt.id}-${r.id}`, false, {
                                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                            lineNumber: 352,
+                                                                            lineNumber: 351,
                                                                             columnNumber: 25
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1101,25 +1100,25 @@ function TruckTable() {
                                                                                 })()
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                                lineNumber: 362,
+                                                                                lineNumber: 361,
                                                                                 columnNumber: 27
                                                                             }, this)
                                                                         }, `car-${dt.id}-${r.id}`, false, {
                                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                            lineNumber: 353,
+                                                                            lineNumber: 352,
                                                                             columnNumber: 25
                                                                         }, this)
                                                                     ]
                                                                 }, `row-${r.id}-${dt.id}`, true, {
                                                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                    lineNumber: 343,
+                                                                    lineNumber: 342,
                                                                     columnNumber: 23
                                                                 }, this);
                                                             })
                                                         ]
                                                     }, r.id, true, {
                                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                                        lineNumber: 337,
+                                                        lineNumber: 336,
                                                         columnNumber: 17
                                                     }, this)),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -1130,12 +1129,12 @@ function TruckTable() {
                                                                 children: "รวม"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                lineNumber: 374,
+                                                                lineNumber: 373,
                                                                 columnNumber: 49
                                                             }, this)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                            lineNumber: 374,
+                                                            lineNumber: 373,
                                                             columnNumber: 17
                                                         }, this),
                                                         displayDepartTimes.map((dt, dtIdx)=>{
@@ -1172,12 +1171,12 @@ function TruckTable() {
                                                                                 children: val > 0 ? val : ''
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                                lineNumber: 398,
+                                                                                lineNumber: 397,
                                                                                 columnNumber: 121
                                                                             }, this)
                                                                         }, `tot-${dt.id}-p-${i}`, false, {
                                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                            lineNumber: 398,
+                                                                            lineNumber: 397,
                                                                             columnNumber: 25
                                                                         }, this)),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1189,12 +1188,12 @@ function TruckTable() {
                                                                             children: ttlTotal > 0 ? ttlTotal : ''
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                            lineNumber: 400,
+                                                                            lineNumber: 399,
                                                                             columnNumber: 117
                                                                         }, this)
                                                                     }, `tot-${dt.id}-ttl`, false, {
                                                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                        lineNumber: 400,
+                                                                        lineNumber: 399,
                                                                         columnNumber: 23
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1206,53 +1205,53 @@ function TruckTable() {
                                                                             children: `${totalVehicles} คัน`
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                            lineNumber: 401,
+                                                                            lineNumber: 400,
                                                                             columnNumber: 116
                                                                         }, this)
                                                                     }, `tot-${dt.id}-cars`, false, {
                                                                         fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                        lineNumber: 401,
+                                                                        lineNumber: 400,
                                                                         columnNumber: 23
                                                                     }, this)
                                                                 ]
                                                             }, `totals-${dt.id}`, true, {
                                                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                                                lineNumber: 396,
+                                                                lineNumber: 395,
                                                                 columnNumber: 21
                                                             }, this);
                                                         })
                                                     ]
                                                 }, "totals-row", true, {
                                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                                    lineNumber: 373,
+                                                    lineNumber: 372,
                                                     columnNumber: 15
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                            lineNumber: 335,
+                                            lineNumber: 334,
                                             columnNumber: 13
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                    lineNumber: 306,
+                                    lineNumber: 305,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/truck-table/page.jsx",
-                                lineNumber: 305,
+                                lineNumber: 304,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/app/truck-table/page.jsx",
-                            lineNumber: 304,
+                            lineNumber: 303,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/truck-table/page.jsx",
-                    lineNumber: 279,
+                    lineNumber: 278,
                     columnNumber: 9
                 }, this),
                 carModal.open && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -1262,7 +1261,7 @@ function TruckTable() {
                             onClick: closeCarModal
                         }, void 0, false, {
                             fileName: "[project]/src/app/truck-table/page.jsx",
-                            lineNumber: 414,
+                            lineNumber: 413,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1274,7 +1273,7 @@ function TruckTable() {
                                     children: "แก้ไขจำนวนรถ"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                    lineNumber: 417,
+                                    lineNumber: 416,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1288,7 +1287,7 @@ function TruckTable() {
                                             children: carModal.route?.name
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                            lineNumber: 419,
+                                            lineNumber: 418,
                                             columnNumber: 24
                                         }, this),
                                         " | ",
@@ -1298,13 +1297,13 @@ function TruckTable() {
                                             children: String(carModal.dt?.time).slice(0, 5)
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                            lineNumber: 419,
+                                            lineNumber: 418,
                                             columnNumber: 122
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                    lineNumber: 418,
+                                    lineNumber: 417,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1315,7 +1314,7 @@ function TruckTable() {
                                             children: "จำนวนรถ:"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                            lineNumber: 422,
+                                            lineNumber: 421,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1333,13 +1332,13 @@ function TruckTable() {
                                             autoFocus: true
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                            lineNumber: 423,
+                                            lineNumber: 422,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                    lineNumber: 421,
+                                    lineNumber: 420,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1351,7 +1350,7 @@ function TruckTable() {
                                             children: "บันทึก"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                            lineNumber: 431,
+                                            lineNumber: 430,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1360,19 +1359,19 @@ function TruckTable() {
                                             children: "ยกเลิก"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/truck-table/page.jsx",
-                                            lineNumber: 432,
+                                            lineNumber: 431,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/truck-table/page.jsx",
-                                    lineNumber: 430,
+                                    lineNumber: 429,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/truck-table/page.jsx",
-                            lineNumber: 415,
+                            lineNumber: 414,
                             columnNumber: 13
                         }, this)
                     ]
@@ -1380,12 +1379,12 @@ function TruckTable() {
             ]
         }, void 0, true, {
             fileName: "[project]/src/app/truck-table/page.jsx",
-            lineNumber: 261,
+            lineNumber: 260,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/truck-table/page.jsx",
-        lineNumber: 257,
+        lineNumber: 256,
         columnNumber: 5
     }, this);
 }
@@ -1649,8 +1648,8 @@ function blendWithWhite(hex, alpha) {
 }
 // Derive per-time body and car cell backgrounds
 function getTimeBodyBg(idx) {
-    const base = getTimeColor(idx);
-    return blendWithWhite(base, 0.18); // very light shade
+    // Changed: return pure white per user request (previously blended color)
+    return '#ffffff';
 }
 function getTimeTotalBg(idx) {
     const base = getTimeColor(idx);
