@@ -17,11 +17,24 @@ export async function GET(request) {
   const the_date = searchParams.get('date');
   if (!the_date) return NextResponse.json({ error: 'missing date' }, { status: 400 });
   // Fetch daily rows
-  const dailyRows = await withInitRetry(() => query(
-    `SELECT the_date, route_id, pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
-     FROM vendor_payments WHERE the_date = ?`,
-    [the_date]
-  ));
+  // Attempt to fetch with new column pay_total_cars; fallback if column doesn't exist yet
+  let dailyRows;
+  try {
+    dailyRows = await withInitRetry(() => query(
+      `SELECT the_date, route_id, pay_flat, pay_wait, pay_total_cars, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
+       FROM vendor_payments WHERE the_date = ?`,
+      [the_date]
+    ));
+  } catch (err) {
+    const msg = String(err?.message || '');
+    const isUnknown = err?.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(msg);
+    if (!isUnknown) throw err;
+    dailyRows = await withInitRetry(() => query(
+      `SELECT the_date, route_id, pay_flat, pay_wait, NULL AS pay_total_cars, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
+       FROM vendor_payments WHERE the_date = ?`,
+      [the_date]
+    ));
+  }
 
   // Merge in monthly overrides for pay_flat if any
   const dt = new Date(the_date);
@@ -41,7 +54,7 @@ export async function GET(request) {
     if (existing) {
       existing.pay_flat = flat; // override daily pay_flat with monthly
     } else {
-      byRoute.set(routeId, { the_date, route_id: Number(routeId), pay_flat: flat, pay_wait: 0, pay_ot_normal: 0, pay_trip: 0, pay_ot_holiday: 0, pay_trip_night: 0 });
+      byRoute.set(routeId, { the_date, route_id: Number(routeId), pay_flat: flat, pay_wait: 0, pay_total_cars: 0, pay_ot_normal: 0, pay_trip: 0, pay_ot_holiday: 0, pay_trip_night: 0 });
     }
   }
   return NextResponse.json(Array.from(byRoute.values()));
@@ -56,7 +69,7 @@ export async function POST(request) {
   const body = await request.json();
   const { the_date, route_id, key, value } = body || {};
   if (!the_date || !route_id || !key) return NextResponse.json({ error: 'missing fields' }, { status: 400 });
-  const allowed = ['pay_flat','pay_wait','pay_ot_normal','pay_trip','pay_ot_holiday','pay_trip_night'];
+  const allowed = ['pay_flat','pay_wait','pay_total_cars','pay_ot_normal','pay_trip','pay_ot_holiday','pay_trip_night'];
   if (!allowed.includes(key)) return NextResponse.json({ error: 'bad key' }, { status: 400 });
   const val = Math.max(0, Number(value) || 0);
   if (key === 'pay_flat') {
@@ -77,12 +90,35 @@ export async function POST(request) {
       [the_date, route_id, val, user.id || null]
     ));
   } else {
-    await withInitRetry(() => query(
-      `INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
-       VALUES (?,?,?,?)
-       ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`,
-      [the_date, route_id, val, user.id || null]
-    ));
+    // Generic upsert; attempt with column. If column missing and it's pay_total_cars, try to add column automatically.
+    try {
+      await withInitRetry(() => query(
+        `INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
+         VALUES (?,?,?,?)
+         ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`,
+        [the_date, route_id, val, user.id || null]
+      ));
+    } catch (err) {
+      const msg = String(err?.message || '');
+      const isUnknown = err?.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(msg);
+      if (isUnknown && key === 'pay_total_cars') {
+        // Try to ALTER table add column then retry
+        try {
+          await withInitRetry(() => query(`ALTER TABLE vendor_payments ADD COLUMN pay_total_cars INT NOT NULL DEFAULT 0`));
+          await withInitRetry(() => query(
+            `INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
+             VALUES (?,?,?,?)
+             ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`,
+            [the_date, route_id, val, user.id || null]
+          ));
+        } catch (e2) {
+          console.error('Failed to add pay_total_cars column:', e2?.message || e2);
+          return NextResponse.json({ error: 'cannot add column pay_total_cars' }, { status: 500 });
+        }
+      } else {
+        throw err;
+      }
+    }
   }
   return NextResponse.json({ ok: true });
 }

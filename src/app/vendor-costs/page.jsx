@@ -52,6 +52,7 @@ export default function VendorCostsPage(){
   const [rates, setRates] = useState({
     rate_flat: 0,
     rate_wait: 0,
+    rate_total_cars: 0,
     rate_ot_normal: 0,
     rate_trip: 0,
     rate_ot_holiday: 0,
@@ -88,17 +89,18 @@ export default function VendorCostsPage(){
   // load rate (Cost column) from DB via /api/vendor/rates per route (persistent across users)
   useEffect(()=>{(async()=>{
     if(!selectedRouteId) return;
-    const defaults = { rate_flat:0, rate_wait:0, rate_ot_normal:0, rate_trip:0, rate_ot_holiday:0, rate_trip_night:0 };
+  const defaults = { rate_flat:0, rate_wait:0, rate_total_cars:0, rate_ot_normal:0, rate_trip:0, rate_ot_holiday:0, rate_trip_night:0 };
     try {
       const data = await fetchJSON(`/api/vendor/rates?route_id=${selectedRouteId}`);
       if (data && typeof data === 'object') {
         setRates({
           rate_flat: Number(data.rate_flat||0),
-          rate_wait: Number(data.rate_wait||0),
-          rate_ot_normal: Number(data.rate_ot_normal||0),
-          rate_trip: Number(data.rate_trip||0),
-          rate_ot_holiday: Number(data.rate_ot_holiday||0),
-          rate_trip_night: Number(data.rate_trip_night||0),
+            rate_wait: Number(data.rate_wait||0),
+            rate_total_cars: Number(data.rate_total_cars||0),
+            rate_ot_normal: Number(data.rate_ot_normal||0),
+            rate_trip: Number(data.rate_trip||0),
+            rate_ot_holiday: Number(data.rate_ot_holiday||0),
+            rate_trip_night: Number(data.rate_trip_night||0),
         });
       } else {
         setRates(defaults);
@@ -130,11 +132,11 @@ export default function VendorCostsPage(){
   }
 
   // edit Cost (rates)
-  function openCostEdit(key,label){ if(lockInfo?.is_locked && !isAdminga) return; const mapKeyToRate = { pay_flat:'rate_flat', pay_wait:'rate_wait', pay_ot_normal:'rate_ot_normal', pay_trip:'rate_trip', pay_ot_holiday:'rate_ot_holiday', pay_trip_night:'rate_trip_night' }; const rateKey = mapKeyToRate[key]; const current = rates[rateKey] ?? 0; setCostEdit({ open:true, key, label, value: String(current) }); }
+  function openCostEdit(key,label){ if(lockInfo?.is_locked && !isAdminga) return; const mapKeyToRate = { pay_flat:'rate_flat', pay_wait:'rate_wait', pay_total_cars:'rate_total_cars', pay_ot_normal:'rate_ot_normal', pay_trip:'rate_trip', pay_ot_holiday:'rate_ot_holiday', pay_trip_night:'rate_trip_night' }; const rateKey = mapKeyToRate[key]; const current = rates[rateKey] ?? 0; setCostEdit({ open:true, key, label, value: String(current) }); }
   async function saveCostEdit(){
     if(!costEdit.open || !selectedRouteId) return;
     const value = Math.max(0, Number(costEdit.value)||0);
-    const mapKeyToRate = { pay_flat:'rate_flat', pay_wait:'rate_wait', pay_ot_normal:'rate_ot_normal', pay_trip:'rate_trip', pay_ot_holiday:'rate_ot_holiday', pay_trip_night:'rate_trip_night' };
+  const mapKeyToRate = { pay_flat:'rate_flat', pay_wait:'rate_wait', pay_total_cars:'rate_total_cars', pay_ot_normal:'rate_ot_normal', pay_trip:'rate_trip', pay_ot_holiday:'rate_ot_holiday', pay_trip_night:'rate_trip_night' };
     const rateKey = mapKeyToRate[costEdit.key];
     const updated = { ...rates, [rateKey]: value };
     setRates(updated);
@@ -159,6 +161,7 @@ export default function VendorCostsPage(){
   // Per-type sums across the selected range
   const sumFlat = useMemo(()=> sumByKey('pay_flat'), [days, payments, selectedRouteId]);
   const sumWait = useMemo(()=> sumByKey('pay_wait'), [days, payments, selectedRouteId]);
+  const sumTotalCars = useMemo(()=> sumByKey('pay_total_cars'), [days, payments, selectedRouteId]);
   const sumOtn  = useMemo(()=> sumByKey('pay_ot_normal'), [days, payments, selectedRouteId]);
   const sumTrip = useMemo(()=> sumByKey('pay_trip'), [days, payments, selectedRouteId]);
   const sumOth  = useMemo(()=> sumByKey('pay_ot_holiday'), [days, payments, selectedRouteId]);
@@ -172,6 +175,7 @@ export default function VendorCostsPage(){
   };
   const lastFlat  = useMemo(()=> lastValueByKey('pay_flat'),        [endDate, selectedRouteId, payments]);
   const lastWait  = useMemo(()=> lastValueByKey('pay_wait'),        [endDate, selectedRouteId, payments]);
+  const lastTotalCars = useMemo(()=> lastValueByKey('pay_total_cars'), [endDate, selectedRouteId, payments]);
   const lastOtn   = useMemo(()=> lastValueByKey('pay_ot_normal'),   [endDate, selectedRouteId, payments]);
   const lastTrip  = useMemo(()=> lastValueByKey('pay_trip'),        [endDate, selectedRouteId, payments]);
   const lastOth   = useMemo(()=> lastValueByKey('pay_ot_holiday'),  [endDate, selectedRouteId, payments]);
@@ -182,19 +186,20 @@ export default function VendorCostsPage(){
   // - แถวอื่น: ผลรวม = ผลรวมทั้งช่วง (sum*)
   const totalFlatByRange = useMemo(()=> Number(rates.rate_flat||0)       * (lastFlat||0),  [rates.rate_flat, lastFlat]);
   const totalWaitByRange = useMemo(()=> Number(rates.rate_wait||0)       * (sumWait||0),   [rates.rate_wait, sumWait]);
+  const totalTotalCarsByRange = useMemo(()=> Number(rates.rate_total_cars||0) * (sumTotalCars||0), [rates.rate_total_cars, sumTotalCars]);
   const totalOtnByRange  = useMemo(()=> Number(rates.rate_ot_normal||0)  * (sumOtn||0),    [rates.rate_ot_normal, sumOtn]);
   const totalTripByRange = useMemo(()=> Number(rates.rate_trip||0)       * (sumTrip||0),   [rates.rate_trip, sumTrip]);
   const totalOthByRange  = useMemo(()=> Number(rates.rate_ot_holiday||0) * (sumOth||0),    [rates.rate_ot_holiday, sumOth]);
   const totalTripNByRange= useMemo(()=> Number(rates.rate_trip_night||0) * (sumTripN||0),  [rates.rate_trip_night, sumTripN]);
   const grandTotalByRange = useMemo(() => (
-    (totalFlatByRange||0) + (totalWaitByRange||0) + (totalOtnByRange||0) + (totalTripByRange||0) + (totalOthByRange||0) + (totalTripNByRange||0)
-  ), [totalFlatByRange, totalWaitByRange, totalOtnByRange, totalTripByRange, totalOthByRange, totalTripNByRange]);
+    (totalFlatByRange||0) + (totalWaitByRange||0) + (totalTotalCarsByRange||0) + (totalOtnByRange||0) + (totalTripByRange||0) + (totalOthByRange||0) + (totalTripNByRange||0)
+  ), [totalFlatByRange, totalWaitByRange, totalTotalCarsByRange, totalOtnByRange, totalTripByRange, totalOthByRange, totalTripNByRange]);
 
   // Bottom total for the "ผลรวม" column
   // ใช้ lastFlat สำหรับแถวรายเดือน และใช้ผลรวมช่วงสำหรับแถวอื่น
   const grandSumCounts = useMemo(() => (
-    (lastFlat||0) + (sumWait||0) + (sumOtn||0) + (sumTrip||0) + (sumOth||0) + (sumTripN||0)
-  ), [lastFlat, sumWait, sumOtn, sumTrip, sumOth, sumTripN]);
+    (lastFlat||0) + (sumWait||0) + (sumTotalCars||0) + (sumOtn||0) + (sumTrip||0) + (sumOth||0) + (sumTripN||0)
+  ), [lastFlat, sumWait, sumTotalCars, sumOtn, sumTrip, sumOth, sumTripN]);
 
   // styles
   const styles = {
@@ -321,6 +326,22 @@ export default function VendorCostsPage(){
                       })}
                       <td style={{...styles.td, textAlign:'right', fontWeight:900}}>{fmtInt(sumWait)}</td>
                       <td style={{...styles.td, textAlign:'right', fontWeight:900}}>{fmtMoney(totalWaitByRange)}</td>
+                    </tr>
+                    {/* รวมรถ */}
+                    <tr>
+                      <td style={{...styles.td, whiteSpace:'nowrap'}}>{r?.name}</td>
+                      <td style={styles.td}>{vendorName}</td>
+                      <td style={styles.td}>รวมรถ</td>
+                      <td style={{...styles.td, textAlign:'right', cursor:(lockInfo?.is_locked && !isAdminga)?'default':'pointer'}} title="คลิกเพื่อแก้ไข" onClick={()=>openCostEdit('pay_total_cars','รวมรถ')}>{fmtMoney(rates.rate_total_cars)}</td>
+                      {days.map(d=>{
+                        const k=`${d}|${selectedRouteId}`; const v = payments[k]?.pay_total_cars||0;
+                        const cellStyle={ ...styles.td, ...styles.dayCell };
+                        return (
+                          <td key={`totalcars-${d}`} style={cellStyle}>{v ? <span style={styles.rotateNum}>{fmtInt(v)}</span> : ''}</td>
+                        );
+                      })}
+                      <td style={{...styles.td, textAlign:'right', fontWeight:900}}>{fmtInt(sumTotalCars)}</td>
+                      <td style={{...styles.td, textAlign:'right', fontWeight:900}}>{fmtMoney(totalTotalCarsByRange)}</td>
                     </tr>
                     {/* OT เหมาวัน */}
                     <tr>

@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { fetchJSON, postJSON } from '@/lib/http';
 import { formatWelcome } from '@/lib/formatters';
 
-export default function TruckTable() {
+export default function TruckTable() {dawddwsdwadddwdwasdwwds
   const router = useRouter();
   const [date, setDate] = useState(() => new Date().toISOString().slice(0,10));
   const [user, setUser] = useState(null);

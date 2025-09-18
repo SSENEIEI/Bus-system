@@ -19,7 +19,7 @@ export default function VendorPlanPage() {
   const [countsByDepartTime, setCountsByDepartTime] = useState({}); // { dtId: { routeId: people } }
   const [carPlanByDepartTime, setCarPlanByDepartTime] = useState({}); // { dtId: { routeId: car_count } }
   const captureRef = useRef(null);
-  const [payments, setPayments] = useState({}); // { routeId: { pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night } }
+  const [payments, setPayments] = useState({}); // { routeId: { pay_flat, pay_wait, pay_total_cars, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night } }
   const [editModal, setEditModal] = useState({ open:false, route:null, key:null, value:'' });
   const [lockInfo, setLockInfo] = useState({ the_date:null, is_locked:0 });
   const isAdminga = useMemo(() => String(user?.username||'').toLowerCase()==='adminga', [user]);
@@ -151,6 +151,7 @@ export default function VendorPlanPage() {
         map[r.route_id] = {
           pay_flat: Number(r.pay_flat)||0,
           pay_wait: Number(r.pay_wait)||0,
+          pay_total_cars: Number(r.pay_total_cars)||0,
           pay_ot_normal: Number(r.pay_ot_normal)||0,
           pay_trip: Number(r.pay_trip)||0,
           pay_ot_holiday: Number(r.pay_ot_holiday)||0,
@@ -245,7 +246,7 @@ export default function VendorPlanPage() {
       peopleTotals[dt.id] = pSum;
       carTotals[dt.id] = cSum;
     }
-    const payKeys = ['pay_flat','pay_wait','pay_ot_normal','pay_trip','pay_ot_holiday','pay_trip_night'];
+  const payKeys = ['pay_flat','pay_wait','pay_total_cars','pay_ot_normal','pay_trip','pay_ot_holiday','pay_trip_night'];
     const payTotals = {};
     for (const k of payKeys) {
       let s = 0;
@@ -297,7 +298,7 @@ export default function VendorPlanPage() {
                     <th style={{ ...styles.thMain, width:240 }} rowSpan={3}>สายรถ</th>
                     <th style={{ ...styles.thShift, background:'#FFEB3B' }} colSpan={(dayTimes.length * 2) + 1}>กะกลางวัน <strong>Day Shift</strong></th>
                     <th style={{ ...styles.thShift, background:'#F8BBD0' }} colSpan={(nightTimes.length * 2) + 1}>กะกลางคืน <strong>Night Shift</strong></th>
-                    <th style={{ ...styles.thMain }} colSpan={6}>จำนวนการจ่าย Bus cost type</th>
+                    <th style={{ ...styles.thMain }} colSpan={7}>จำนวนการจ่าย Bus cost type</th>
                   </tr>
                   <tr>
                     {dayTimes.map((dt) => (
@@ -334,6 +335,7 @@ export default function VendorPlanPage() {
                     </th>
                     <th style={styles.thPayHead} rowSpan={2}>รายเดือน</th>
                     <th style={styles.thPayHead} rowSpan={2}>จอดรอ</th>
+                    <th style={styles.thPayHead} rowSpan={2}>รวมรถ</th>
                     <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันปกติ</th>
                     <th style={styles.thPayHead} rowSpan={2}>เหมาเที่ยว</th>
                     <th style={styles.thPayHead} rowSpan={2}>OT เหมาวันหยุด</th>
@@ -410,8 +412,10 @@ export default function VendorPlanPage() {
                           <td style={styles.tdCell} key={`cell-night-sum-${r.id}`}>{nightCars > 0 ? <b>{nightCars} คัน</b> : ''}</td>
                         );
                       })()}
-                      <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_flat')}>{(payments?.[r.id]?.pay_flat||0) || ''}</td>
+                      {/* รายเดือน: apply soft yellow background inside table body */}
+                      <td style={{ ...styles.tdPay, ...styles.tdPayMonthly }} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_flat')}>{(payments?.[r.id]?.pay_flat||0) || ''}</td>
                       <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_wait')}>{(payments?.[r.id]?.pay_wait||0) || ''}</td>
+                      <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_total_cars')}>{(payments?.[r.id]?.pay_total_cars||0) || ''}</td>
                       <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_normal')}>{(payments?.[r.id]?.pay_ot_normal||0) || ''}</td>
                       <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_trip')}>{(payments?.[r.id]?.pay_trip||0) || ''}</td>
                       <td style={styles.tdPay} onClick={()=>!lockInfo?.is_locked && openEdit(r,'pay_ot_holiday')}>{(payments?.[r.id]?.pay_ot_holiday||0) || ''}</td>
@@ -445,8 +449,10 @@ export default function VendorPlanPage() {
                     ))}
                     {/* Night shift vertical sum total at right */}
                     <td style={styles.tdSum}>{(nightTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)) > 0 ? <b>{`${nightTimes.reduce((acc, dt) => acc + (totals.carTotals?.[dt.id] || 0), 0)} คัน`}</b> : ''}</td>
-                    <td style={styles.tdSumPay}>{(totals.payTotals?.pay_flat ?? 0) > 0 ? <b>{totals.payTotals.pay_flat}</b> : ''}</td>
+                    {/* รายเดือน total: match soft yellow style */}
+                    <td style={{ ...styles.tdSumPay, ...styles.tdSumPayMonthly }}>{(totals.payTotals?.pay_flat ?? 0) > 0 ? <b>{totals.payTotals.pay_flat}</b> : ''}</td>
                     <td style={styles.tdSumPay}>{(totals.payTotals?.pay_wait ?? 0) > 0 ? <b>{totals.payTotals.pay_wait}</b> : ''}</td>
+                    <td style={styles.tdSumPay}>{(totals.payTotals?.pay_total_cars ?? 0) > 0 ? <b>{totals.payTotals.pay_total_cars}</b> : ''}</td>
                     <td style={styles.tdSumPay}>{(totals.payTotals?.pay_ot_normal ?? 0) > 0 ? <b>{totals.payTotals.pay_ot_normal}</b> : ''}</td>
                     <td style={styles.tdSumPay}>{(totals.payTotals?.pay_trip ?? 0) > 0 ? <b>{totals.payTotals.pay_trip}</b> : ''}</td>
                     <td style={styles.tdSumPay}>{(totals.payTotals?.pay_ot_holiday ?? 0) > 0 ? <b>{totals.payTotals.pay_ot_holiday}</b> : ''}</td>
@@ -517,9 +523,11 @@ const styles = {
   routeIndex: { display: "inline-block", width: 24, textAlign: "right", marginRight: 6 },
   tdCell: { border: "1px solid #e6edf3", padding: 6, minWidth: 60, height: 36, background: "#ffffff", textAlign: "center", fontSize: 12 },
   tdPay: { border: "1px solid #e6edf3", padding: 6, minWidth: 130, height: 36, background: "#ffffff", textAlign: "center", fontSize: 12 },
+  tdPayMonthly: { background: '#fff9d6' }, // soft yellow for รายเดือน body cells
   tdTotalRoute: { border: "1px solid #e6edf3", padding: 8, background: "#eef3f8", fontWeight: 900, color: "#2f3e4f", textAlign:'center' },
   tdSum: { border: "1px solid #e6edf3", padding: 6, background: "#f8fbff", textAlign: "center", fontSize: 12, fontWeight: 800 },
   tdSumPay: { border: "1px solid #e6edf3", padding: 6, background: "#f4f9f2", textAlign: "center", fontSize: 12, fontWeight: 800 },
+  tdSumPayMonthly: { background: '#fff2b3' }, // slightly stronger yellow for total cell
   approveBtn: { padding:'10px 14px', borderRadius:10, background:'#2ecc71', color:'#fff', border:'none', fontWeight:800, cursor:'pointer' },
   cancelGrayBtn: { padding:'10px 14px', borderRadius:10, background:'#ffffff', color:'#7f8c8d', border:'1px solid #bdc3c7', fontWeight:800, cursor:'pointer' },
   lockedWrap: { opacity:0.5, pointerEvents:'none', filter:'grayscale(0.6)' },

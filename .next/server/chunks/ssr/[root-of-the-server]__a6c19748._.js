@@ -354,6 +354,7 @@ function VendorCostsPage() {
     const [rates, setRates] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])({
         rate_flat: 0,
         rate_wait: 0,
+        rate_total_cars: 0,
         rate_ot_normal: 0,
         rate_trip: 0,
         rate_ot_holiday: 0,
@@ -432,6 +433,7 @@ function VendorCostsPage() {
             const defaults = {
                 rate_flat: 0,
                 rate_wait: 0,
+                rate_total_cars: 0,
                 rate_ot_normal: 0,
                 rate_trip: 0,
                 rate_ot_holiday: 0,
@@ -443,6 +445,7 @@ function VendorCostsPage() {
                     setRates({
                         rate_flat: Number(data.rate_flat || 0),
                         rate_wait: Number(data.rate_wait || 0),
+                        rate_total_cars: Number(data.rate_total_cars || 0),
                         rate_ot_normal: Number(data.rate_ot_normal || 0),
                         rate_trip: Number(data.rate_trip || 0),
                         rate_ot_holiday: Number(data.rate_ot_holiday || 0),
@@ -564,6 +567,7 @@ function VendorCostsPage() {
         const mapKeyToRate = {
             pay_flat: 'rate_flat',
             pay_wait: 'rate_wait',
+            pay_total_cars: 'rate_total_cars',
             pay_ot_normal: 'rate_ot_normal',
             pay_trip: 'rate_trip',
             pay_ot_holiday: 'rate_ot_holiday',
@@ -584,6 +588,7 @@ function VendorCostsPage() {
         const mapKeyToRate = {
             pay_flat: 'rate_flat',
             pay_wait: 'rate_wait',
+            pay_total_cars: 'rate_total_cars',
             pay_ot_normal: 'rate_ot_normal',
             pay_trip: 'rate_trip',
             pay_ot_holiday: 'rate_ot_holiday',
@@ -633,6 +638,11 @@ function VendorCostsPage() {
         payments,
         selectedRouteId
     ]);
+    const sumTotalCars = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>sumByKey('pay_total_cars'), [
+        days,
+        payments,
+        selectedRouteId
+    ]);
     const sumOtn = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>sumByKey('pay_ot_normal'), [
         days,
         payments,
@@ -669,6 +679,11 @@ function VendorCostsPage() {
         selectedRouteId,
         payments
     ]);
+    const lastTotalCars = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>lastValueByKey('pay_total_cars'), [
+        endDate,
+        selectedRouteId,
+        payments
+    ]);
     const lastOtn = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>lastValueByKey('pay_ot_normal'), [
         endDate,
         selectedRouteId,
@@ -700,6 +715,10 @@ function VendorCostsPage() {
         rates.rate_wait,
         sumWait
     ]);
+    const totalTotalCarsByRange = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>Number(rates.rate_total_cars || 0) * (sumTotalCars || 0), [
+        rates.rate_total_cars,
+        sumTotalCars
+    ]);
     const totalOtnByRange = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>Number(rates.rate_ot_normal || 0) * (sumOtn || 0), [
         rates.rate_ot_normal,
         sumOtn
@@ -716,9 +735,10 @@ function VendorCostsPage() {
         rates.rate_trip_night,
         sumTripN
     ]);
-    const grandTotalByRange = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>(totalFlatByRange || 0) + (totalWaitByRange || 0) + (totalOtnByRange || 0) + (totalTripByRange || 0) + (totalOthByRange || 0) + (totalTripNByRange || 0), [
+    const grandTotalByRange = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>(totalFlatByRange || 0) + (totalWaitByRange || 0) + (totalTotalCarsByRange || 0) + (totalOtnByRange || 0) + (totalTripByRange || 0) + (totalOthByRange || 0) + (totalTripNByRange || 0), [
         totalFlatByRange,
         totalWaitByRange,
+        totalTotalCarsByRange,
         totalOtnByRange,
         totalTripByRange,
         totalOthByRange,
@@ -726,9 +746,10 @@ function VendorCostsPage() {
     ]);
     // Bottom total for the "ผลรวม" column
     // ใช้ lastFlat สำหรับแถวรายเดือน และใช้ผลรวมช่วงสำหรับแถวอื่น
-    const grandSumCounts = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>(lastFlat || 0) + (sumWait || 0) + (sumOtn || 0) + (sumTrip || 0) + (sumOth || 0) + (sumTripN || 0), [
+    const grandSumCounts = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>(lastFlat || 0) + (sumWait || 0) + (sumTotalCars || 0) + (sumOtn || 0) + (sumTrip || 0) + (sumOth || 0) + (sumTripN || 0), [
         lastFlat,
         sumWait,
+        sumTotalCars,
         sumOtn,
         sumTrip,
         sumOth,
@@ -962,7 +983,7 @@ function VendorCostsPage() {
                                         children: "คำนวณค่าใช้จ่าย"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 240,
+                                        lineNumber: 245,
                                         columnNumber: 13
                                     }, this),
                                     user && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -976,13 +997,13 @@ function VendorCostsPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 241,
+                                        lineNumber: 246,
                                         columnNumber: 22
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 239,
+                                lineNumber: 244,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1000,7 +1021,7 @@ function VendorCostsPage() {
                                         children: todayStr
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 244,
+                                        lineNumber: 249,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1014,7 +1035,7 @@ function VendorCostsPage() {
                                         children: "กลับเมนูหลัก"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 245,
+                                        lineNumber: 250,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1023,19 +1044,19 @@ function VendorCostsPage() {
                                         children: "ออกจากระบบ"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 246,
+                                        lineNumber: 251,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 243,
+                                lineNumber: 248,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                        lineNumber: 238,
+                        lineNumber: 243,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1046,7 +1067,7 @@ function VendorCostsPage() {
                                 children: "เลือกวันที่:"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 251,
+                                lineNumber: 256,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1056,7 +1077,7 @@ function VendorCostsPage() {
                                 style: styles.input
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 252,
+                                lineNumber: 257,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1064,7 +1085,7 @@ function VendorCostsPage() {
                                 children: "ถึงวันที่:"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 253,
+                                lineNumber: 258,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1074,7 +1095,7 @@ function VendorCostsPage() {
                                 style: styles.input
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 254,
+                                lineNumber: 259,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1082,7 +1103,7 @@ function VendorCostsPage() {
                                 children: "สายรถ:"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 255,
+                                lineNumber: 260,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1094,12 +1115,12 @@ function VendorCostsPage() {
                                         children: r.name
                                     }, r.id, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 257,
+                                        lineNumber: 262,
                                         columnNumber: 29
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 256,
+                                lineNumber: 261,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1111,7 +1132,7 @@ function VendorCostsPage() {
                                 children: "บันทึกรูปภาพ"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 259,
+                                lineNumber: 264,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1123,13 +1144,13 @@ function VendorCostsPage() {
                                 children: "ดาวน์โหลด Excel"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 260,
+                                lineNumber: 265,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                        lineNumber: 250,
+                        lineNumber: 255,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1149,7 +1170,7 @@ function VendorCostsPage() {
                                                 children: "สายรถ"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                lineNumber: 267,
+                                                lineNumber: 272,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1160,7 +1181,7 @@ function VendorCostsPage() {
                                                 children: "Vendor"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                lineNumber: 268,
+                                                lineNumber: 273,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1171,7 +1192,7 @@ function VendorCostsPage() {
                                                 children: "Bus cost type"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                lineNumber: 269,
+                                                lineNumber: 274,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1182,7 +1203,7 @@ function VendorCostsPage() {
                                                 children: "Cost"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                lineNumber: 270,
+                                                lineNumber: 275,
                                                 columnNumber: 17
                                             }, this),
                                             days.map((d)=>{
@@ -1196,7 +1217,7 @@ function VendorCostsPage() {
                                                     children: num
                                                 }, d, false, {
                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                    lineNumber: 274,
+                                                    lineNumber: 279,
                                                     columnNumber: 21
                                                 }, this);
                                             }),
@@ -1208,7 +1229,7 @@ function VendorCostsPage() {
                                                 children: "ผลรวม"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                lineNumber: 279,
+                                                lineNumber: 284,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1219,18 +1240,18 @@ function VendorCostsPage() {
                                                 children: "Total cost"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                lineNumber: 280,
+                                                lineNumber: 285,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 266,
+                                        lineNumber: 271,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                    lineNumber: 265,
+                                    lineNumber: 270,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -1249,7 +1270,7 @@ function VendorCostsPage() {
                                                             children: r?.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 291,
+                                                            lineNumber: 296,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1257,7 +1278,7 @@ function VendorCostsPage() {
                                                             children: vendorName
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 292,
+                                                            lineNumber: 297,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1265,7 +1286,7 @@ function VendorCostsPage() {
                                                             children: "รายเดือน"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 293,
+                                                            lineNumber: 298,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1279,7 +1300,7 @@ function VendorCostsPage() {
                                                             children: fmtMoney(rates.rate_flat)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 294,
+                                                            lineNumber: 299,
                                                             columnNumber: 23
                                                         }, this),
                                                         days.map((d)=>{
@@ -1296,12 +1317,12 @@ function VendorCostsPage() {
                                                                     children: fmtInt(v)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                    lineNumber: 300,
+                                                                    lineNumber: 305,
                                                                     columnNumber: 34
                                                                 }, this) : ''
                                                             }, `flat-${d}`, false, {
                                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                lineNumber: 299,
+                                                                lineNumber: 304,
                                                                 columnNumber: 27
                                                             }, this);
                                                         }),
@@ -1314,7 +1335,7 @@ function VendorCostsPage() {
                                                             children: fmtInt(lastFlat)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 305,
+                                                            lineNumber: 310,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1326,13 +1347,13 @@ function VendorCostsPage() {
                                                             children: fmtMoney(totalFlatByRange)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 306,
+                                                            lineNumber: 311,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                    lineNumber: 290,
+                                                    lineNumber: 295,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -1345,7 +1366,7 @@ function VendorCostsPage() {
                                                             children: r?.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 311,
+                                                            lineNumber: 316,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1353,7 +1374,7 @@ function VendorCostsPage() {
                                                             children: vendorName
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 312,
+                                                            lineNumber: 317,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1361,7 +1382,7 @@ function VendorCostsPage() {
                                                             children: "จอดรอ"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 313,
+                                                            lineNumber: 318,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1375,7 +1396,7 @@ function VendorCostsPage() {
                                                             children: fmtMoney(rates.rate_wait)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 314,
+                                                            lineNumber: 319,
                                                             columnNumber: 23
                                                         }, this),
                                                         days.map((d)=>{
@@ -1392,12 +1413,12 @@ function VendorCostsPage() {
                                                                     children: fmtInt(v)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                    lineNumber: 319,
+                                                                    lineNumber: 324,
                                                                     columnNumber: 72
                                                                 }, this) : ''
                                                             }, `wait-${d}`, false, {
                                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                lineNumber: 319,
+                                                                lineNumber: 324,
                                                                 columnNumber: 27
                                                             }, this);
                                                         }),
@@ -1410,7 +1431,7 @@ function VendorCostsPage() {
                                                             children: fmtInt(sumWait)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 322,
+                                                            lineNumber: 327,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1422,13 +1443,13 @@ function VendorCostsPage() {
                                                             children: fmtMoney(totalWaitByRange)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 323,
+                                                            lineNumber: 328,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                    lineNumber: 310,
+                                                    lineNumber: 315,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -1441,7 +1462,7 @@ function VendorCostsPage() {
                                                             children: r?.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 327,
+                                                            lineNumber: 332,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1449,7 +1470,103 @@ function VendorCostsPage() {
                                                             children: vendorName
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 328,
+                                                            lineNumber: 333,
+                                                            columnNumber: 23
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            style: styles.td,
+                                                            children: "รวมรถ"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                            lineNumber: 334,
+                                                            columnNumber: 23
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            style: {
+                                                                ...styles.td,
+                                                                textAlign: 'right',
+                                                                cursor: lockInfo?.is_locked && !isAdminga ? 'default' : 'pointer'
+                                                            },
+                                                            title: "คลิกเพื่อแก้ไข",
+                                                            onClick: ()=>openCostEdit('pay_total_cars', 'รวมรถ'),
+                                                            children: fmtMoney(rates.rate_total_cars)
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                            lineNumber: 335,
+                                                            columnNumber: 23
+                                                        }, this),
+                                                        days.map((d)=>{
+                                                            const k = `${d}|${selectedRouteId}`;
+                                                            const v = payments[k]?.pay_total_cars || 0;
+                                                            const cellStyle = {
+                                                                ...styles.td,
+                                                                ...styles.dayCell
+                                                            };
+                                                            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                                style: cellStyle,
+                                                                children: v ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                    style: styles.rotateNum,
+                                                                    children: fmtInt(v)
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                                    lineNumber: 340,
+                                                                    columnNumber: 77
+                                                                }, this) : ''
+                                                            }, `totalcars-${d}`, false, {
+                                                                fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                                lineNumber: 340,
+                                                                columnNumber: 27
+                                                            }, this);
+                                                        }),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            style: {
+                                                                ...styles.td,
+                                                                textAlign: 'right',
+                                                                fontWeight: 900
+                                                            },
+                                                            children: fmtInt(sumTotalCars)
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                            lineNumber: 343,
+                                                            columnNumber: 23
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            style: {
+                                                                ...styles.td,
+                                                                textAlign: 'right',
+                                                                fontWeight: 900
+                                                            },
+                                                            children: fmtMoney(totalTotalCarsByRange)
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                            lineNumber: 344,
+                                                            columnNumber: 23
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                    lineNumber: 331,
+                                                    columnNumber: 21
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            style: {
+                                                                ...styles.td,
+                                                                whiteSpace: 'nowrap'
+                                                            },
+                                                            children: r?.name
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                            lineNumber: 348,
+                                                            columnNumber: 23
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            style: styles.td,
+                                                            children: vendorName
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/vendor-costs/page.jsx",
+                                                            lineNumber: 349,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1457,7 +1574,7 @@ function VendorCostsPage() {
                                                             children: "OT เหมาวัน"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 329,
+                                                            lineNumber: 350,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1471,7 +1588,7 @@ function VendorCostsPage() {
                                                             children: fmtMoney(rates.rate_ot_normal)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 330,
+                                                            lineNumber: 351,
                                                             columnNumber: 23
                                                         }, this),
                                                         days.map((d)=>{
@@ -1488,12 +1605,12 @@ function VendorCostsPage() {
                                                                     children: fmtInt(v)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                    lineNumber: 335,
+                                                                    lineNumber: 356,
                                                                     columnNumber: 71
                                                                 }, this) : ''
                                                             }, `otn-${d}`, false, {
                                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                lineNumber: 335,
+                                                                lineNumber: 356,
                                                                 columnNumber: 27
                                                             }, this);
                                                         }),
@@ -1506,7 +1623,7 @@ function VendorCostsPage() {
                                                             children: fmtInt(sumOtn)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 338,
+                                                            lineNumber: 359,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1518,13 +1635,13 @@ function VendorCostsPage() {
                                                             children: fmtMoney(totalOtnByRange)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 339,
+                                                            lineNumber: 360,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                    lineNumber: 326,
+                                                    lineNumber: 347,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -1537,7 +1654,7 @@ function VendorCostsPage() {
                                                             children: r?.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 343,
+                                                            lineNumber: 364,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1545,7 +1662,7 @@ function VendorCostsPage() {
                                                             children: vendorName
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 344,
+                                                            lineNumber: 365,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1553,7 +1670,7 @@ function VendorCostsPage() {
                                                             children: "เหมาเที่ยว"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 345,
+                                                            lineNumber: 366,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1567,7 +1684,7 @@ function VendorCostsPage() {
                                                             children: fmtMoney(rates.rate_trip)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 346,
+                                                            lineNumber: 367,
                                                             columnNumber: 23
                                                         }, this),
                                                         days.map((d)=>{
@@ -1584,12 +1701,12 @@ function VendorCostsPage() {
                                                                     children: fmtInt(v)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                    lineNumber: 351,
+                                                                    lineNumber: 372,
                                                                     columnNumber: 72
                                                                 }, this) : ''
                                                             }, `trip-${d}`, false, {
                                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                lineNumber: 351,
+                                                                lineNumber: 372,
                                                                 columnNumber: 27
                                                             }, this);
                                                         }),
@@ -1602,7 +1719,7 @@ function VendorCostsPage() {
                                                             children: fmtInt(sumTrip)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 354,
+                                                            lineNumber: 375,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1614,13 +1731,13 @@ function VendorCostsPage() {
                                                             children: fmtMoney(totalTripByRange)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 355,
+                                                            lineNumber: 376,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                    lineNumber: 342,
+                                                    lineNumber: 363,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -1633,7 +1750,7 @@ function VendorCostsPage() {
                                                             children: r?.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 359,
+                                                            lineNumber: 380,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1641,7 +1758,7 @@ function VendorCostsPage() {
                                                             children: vendorName
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 360,
+                                                            lineNumber: 381,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1649,7 +1766,7 @@ function VendorCostsPage() {
                                                             children: "OT เหมาวันหยุด"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 361,
+                                                            lineNumber: 382,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1663,7 +1780,7 @@ function VendorCostsPage() {
                                                             children: fmtMoney(rates.rate_ot_holiday)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 362,
+                                                            lineNumber: 383,
                                                             columnNumber: 23
                                                         }, this),
                                                         days.map((d)=>{
@@ -1680,12 +1797,12 @@ function VendorCostsPage() {
                                                                     children: fmtInt(v)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                    lineNumber: 367,
+                                                                    lineNumber: 388,
                                                                     columnNumber: 71
                                                                 }, this) : ''
                                                             }, `oth-${d}`, false, {
                                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                lineNumber: 367,
+                                                                lineNumber: 388,
                                                                 columnNumber: 27
                                                             }, this);
                                                         }),
@@ -1698,7 +1815,7 @@ function VendorCostsPage() {
                                                             children: fmtInt(sumOth)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 370,
+                                                            lineNumber: 391,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1710,13 +1827,13 @@ function VendorCostsPage() {
                                                             children: fmtMoney(totalOthByRange)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 371,
+                                                            lineNumber: 392,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                    lineNumber: 358,
+                                                    lineNumber: 379,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -1729,7 +1846,7 @@ function VendorCostsPage() {
                                                             children: r?.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 375,
+                                                            lineNumber: 396,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1737,7 +1854,7 @@ function VendorCostsPage() {
                                                             children: vendorName
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 376,
+                                                            lineNumber: 397,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1745,7 +1862,7 @@ function VendorCostsPage() {
                                                             children: "เหมาเที่ยวกะดึก"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 377,
+                                                            lineNumber: 398,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1759,7 +1876,7 @@ function VendorCostsPage() {
                                                             children: fmtMoney(rates.rate_trip_night)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 378,
+                                                            lineNumber: 399,
                                                             columnNumber: 23
                                                         }, this),
                                                         days.map((d)=>{
@@ -1776,12 +1893,12 @@ function VendorCostsPage() {
                                                                     children: fmtInt(v)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                    lineNumber: 383,
+                                                                    lineNumber: 404,
                                                                     columnNumber: 73
                                                                 }, this) : ''
                                                             }, `tripn-${d}`, false, {
                                                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                                lineNumber: 383,
+                                                                lineNumber: 404,
                                                                 columnNumber: 27
                                                             }, this);
                                                         }),
@@ -1794,7 +1911,7 @@ function VendorCostsPage() {
                                                             children: fmtInt(sumTripN)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 386,
+                                                            lineNumber: 407,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1806,13 +1923,13 @@ function VendorCostsPage() {
                                                             children: fmtMoney(totalTripNByRange)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 387,
+                                                            lineNumber: 408,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                    lineNumber: 374,
+                                                    lineNumber: 395,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
@@ -1822,7 +1939,7 @@ function VendorCostsPage() {
                                                             colSpan: days.length + 4
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 392,
+                                                            lineNumber: 413,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1834,7 +1951,7 @@ function VendorCostsPage() {
                                                             children: fmtInt(grandSumCounts)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 393,
+                                                            lineNumber: 414,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1846,13 +1963,13 @@ function VendorCostsPage() {
                                                             children: fmtMoney(grandTotalByRange)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                            lineNumber: 394,
+                                                            lineNumber: 415,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                                    lineNumber: 391,
+                                                    lineNumber: 412,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
@@ -1860,18 +1977,18 @@ function VendorCostsPage() {
                                     })()
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                    lineNumber: 283,
+                                    lineNumber: 288,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/vendor-costs/page.jsx",
-                            lineNumber: 264,
+                            lineNumber: 269,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                        lineNumber: 263,
+                        lineNumber: 268,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1883,7 +2000,7 @@ function VendorCostsPage() {
                                 children: "บันทึกข้อมูล"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 404,
+                                lineNumber: 425,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1892,19 +2009,19 @@ function VendorCostsPage() {
                                 children: "ยกเลิก"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 405,
+                                lineNumber: 426,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                        lineNumber: 403,
+                        lineNumber: 424,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                lineNumber: 237,
+                lineNumber: 242,
                 columnNumber: 7
             }, this),
             edit.open && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -1919,7 +2036,7 @@ function VendorCostsPage() {
                             })
                     }, void 0, false, {
                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                        lineNumber: 411,
+                        lineNumber: 432,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1935,7 +2052,7 @@ function VendorCostsPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 413,
+                                lineNumber: 434,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1953,7 +2070,7 @@ function VendorCostsPage() {
                                 autoFocus: true
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 414,
+                                lineNumber: 435,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1968,7 +2085,7 @@ function VendorCostsPage() {
                                         children: "บันทึก"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 416,
+                                        lineNumber: 437,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1985,19 +2102,19 @@ function VendorCostsPage() {
                                         children: "ยกเลิก"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 417,
+                                        lineNumber: 438,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 415,
+                                lineNumber: 436,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                        lineNumber: 412,
+                        lineNumber: 433,
                         columnNumber: 11
                     }, this)
                 ]
@@ -2014,7 +2131,7 @@ function VendorCostsPage() {
                             })
                     }, void 0, false, {
                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                        lineNumber: 425,
+                        lineNumber: 446,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2030,7 +2147,7 @@ function VendorCostsPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 427,
+                                lineNumber: 448,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2042,7 +2159,7 @@ function VendorCostsPage() {
                                 children: "จำนวน:"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 428,
+                                lineNumber: 449,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2066,7 +2183,7 @@ function VendorCostsPage() {
                                 autoFocus: true
                             }, void 0, false, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 429,
+                                lineNumber: 450,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2081,7 +2198,7 @@ function VendorCostsPage() {
                                         children: "บันทึก"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 441,
+                                        lineNumber: 462,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2098,19 +2215,19 @@ function VendorCostsPage() {
                                         children: "ยกเลิก"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                        lineNumber: 442,
+                                        lineNumber: 463,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/vendor-costs/page.jsx",
-                                lineNumber: 440,
+                                lineNumber: 461,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/vendor-costs/page.jsx",
-                        lineNumber: 426,
+                        lineNumber: 447,
                         columnNumber: 11
                     }, this)
                 ]
@@ -2118,7 +2235,7 @@ function VendorCostsPage() {
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/vendor-costs/page.jsx",
-        lineNumber: 236,
+        lineNumber: 241,
         columnNumber: 5
     }, this);
 }

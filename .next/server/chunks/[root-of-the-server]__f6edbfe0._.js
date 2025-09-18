@@ -476,6 +476,27 @@ async function initDatabase(options = {}) {
     await ensureForeignKey('ot_time_locks', 'ottime_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
     await ensureForeignKey('ot_time_locks', 'ottime_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
     await ensureForeignKey('ot_time_locks', 'ottime_user_fk', 'FOREIGN KEY (locked_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.4) Time hides per date/shift (admin-controlled visibility of depart times)
+    await exec(`CREATE TABLE IF NOT EXISTS ot_time_hides (
+    the_date DATE NOT NULL,
+    shift_id INT NOT NULL,
+    depart_time_id INT NOT NULL,
+    hidden_by_user_id INT NULL,
+    hidden_at DATETIME NULL,
+    PRIMARY KEY (the_date, shift_id, depart_time_id)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_time_hides', 'othide_shift_fk', 'FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_time_hides', 'othide_dt_fk', 'FOREIGN KEY (depart_time_id) REFERENCES depart_times(id) ON DELETE CASCADE');
+    await ensureForeignKey('ot_time_hides', 'othide_user_fk', 'FOREIGN KEY (hidden_by_user_id) REFERENCES users(id) ON DELETE SET NULL');
+    // 6.4.1) Global OT settings (key-value) to control behaviors like auto-hide
+    await exec(`CREATE TABLE IF NOT EXISTS ot_settings (
+    name VARCHAR(100) NOT NULL,
+    value VARCHAR(255) NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (name)
+  ) CHARSET=utf8mb4`);
+    await ensureForeignKey('ot_settings', 'otsettings_updated_by_fk', 'FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL');
     // 6.3) Department-level locks per date/shift/depart_time
     await exec(`CREATE TABLE IF NOT EXISTS ot_department_time_locks (
     the_date DATE NOT NULL,
@@ -812,14 +833,26 @@ async function GET(request) {
     }, {
         status: 400
     });
-    const rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT route_id, rate_flat, rate_wait, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night
-     FROM vendor_rates WHERE route_id = ?`, [
-            route_id
-        ]));
+    let rows;
+    try {
+        rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT route_id, rate_flat, rate_wait, rate_total_cars, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night
+       FROM vendor_rates WHERE route_id = ?`, [
+                route_id
+            ]));
+    } catch (err) {
+        const msg = String(err?.message || '');
+        const isUnknown = err?.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(msg);
+        if (!isUnknown) throw err;
+        rows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT route_id, rate_flat, rate_wait, NULL AS rate_total_cars, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night
+       FROM vendor_rates WHERE route_id = ?`, [
+                route_id
+            ]));
+    }
     return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows[0] || {
         route_id,
         rate_flat: 0,
         rate_wait: 0,
+        rate_total_cars: 0,
         rate_ot_normal: 0,
         rate_trip: 0,
         rate_ot_holiday: 0,
@@ -848,18 +881,20 @@ async function POST(request) {
         const v = {
             rate_flat: Math.max(0, Number(values.rate_flat) || 0),
             rate_wait: Math.max(0, Number(values.rate_wait) || 0),
+            rate_total_cars: Math.max(0, Number(values.rate_total_cars) || 0),
             rate_ot_normal: Math.max(0, Number(values.rate_ot_normal) || 0),
             rate_trip: Math.max(0, Number(values.rate_trip) || 0),
             rate_ot_holiday: Math.max(0, Number(values.rate_ot_holiday) || 0),
             rate_trip_night: Math.max(0, Number(values.rate_trip_night) || 0)
         };
         try {
-            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_rates (route_id, rate_flat, rate_wait, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night, updated_by)
-         VALUES (?,?,?,?,?,?,?,?)
-         ON DUPLICATE KEY UPDATE rate_flat=VALUES(rate_flat), rate_wait=VALUES(rate_wait), rate_ot_normal=VALUES(rate_ot_normal), rate_trip=VALUES(rate_trip), rate_ot_holiday=VALUES(rate_ot_holiday), rate_trip_night=VALUES(rate_trip_night), updated_by=VALUES(updated_by)`, [
+            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_rates (route_id, rate_flat, rate_wait, rate_total_cars, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night, updated_by)
+         VALUES (?,?,?,?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE rate_flat=VALUES(rate_flat), rate_wait=VALUES(rate_wait), rate_total_cars=VALUES(rate_total_cars), rate_ot_normal=VALUES(rate_ot_normal), rate_trip=VALUES(rate_trip), rate_ot_holiday=VALUES(rate_ot_holiday), rate_trip_night=VALUES(rate_trip_night), updated_by=VALUES(updated_by)`, [
                     route_id,
                     v.rate_flat,
                     v.rate_wait,
+                    v.rate_total_cars,
                     v.rate_ot_normal,
                     v.rate_trip,
                     v.rate_ot_holiday,
@@ -868,20 +903,73 @@ async function POST(request) {
                 ]));
         } catch (err) {
             const msg = String(err?.message || '');
-            // Fallback for schema without updated_by/updated_at columns
             const isUnknownColumn = err?.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(msg);
-            if (!isUnknownColumn) throw err;
-            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_rates (route_id, rate_flat, rate_wait, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night)
-         VALUES (?,?,?,?,?,?,?)
-         ON DUPLICATE KEY UPDATE rate_flat=VALUES(rate_flat), rate_wait=VALUES(rate_wait), rate_ot_normal=VALUES(rate_ot_normal), rate_trip=VALUES(rate_trip), rate_ot_holiday=VALUES(rate_ot_holiday), rate_trip_night=VALUES(rate_trip_night)`, [
-                    route_id,
-                    v.rate_flat,
-                    v.rate_wait,
-                    v.rate_ot_normal,
-                    v.rate_trip,
-                    v.rate_ot_holiday,
-                    v.rate_trip_night
-                ]));
+            if (isUnknownColumn) {
+                // Attempt to add missing column(s) then retry once
+                try {
+                    await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`ALTER TABLE vendor_rates ADD COLUMN rate_total_cars INT NOT NULL DEFAULT 0`));
+                } catch (e2) {
+                    const m2 = String(e2?.message || '');
+                    // ignore if already exists (race condition)
+                    if (!/Duplicate|exists|errno 1060/i.test(m2)) {
+                        console.error('Failed adding rate_total_cars column:', m2);
+                    }
+                }
+                try {
+                    await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_rates (route_id, rate_flat, rate_wait, rate_total_cars, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night, updated_by)
+             VALUES (?,?,?,?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE rate_flat=VALUES(rate_flat), rate_wait=VALUES(rate_wait), rate_total_cars=VALUES(rate_total_cars), rate_ot_normal=VALUES(rate_ot_normal), rate_trip=VALUES(rate_trip), rate_ot_holiday=VALUES(rate_ot_holiday), rate_trip_night=VALUES(rate_trip_night), updated_by=VALUES(updated_by)`, [
+                            route_id,
+                            v.rate_flat,
+                            v.rate_wait,
+                            v.rate_total_cars,
+                            v.rate_ot_normal,
+                            v.rate_trip,
+                            v.rate_ot_holiday,
+                            v.rate_trip_night,
+                            user.id || null
+                        ]));
+                } catch (e3) {
+                    // Fallback: try without updated_by columns OR if still unknown
+                    const m3 = String(e3?.message || '');
+                    const isUnknown2 = e3?.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(m3);
+                    if (isUnknown2) {
+                        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_rates (route_id, rate_flat, rate_wait, rate_total_cars, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night)
+               VALUES (?,?,?,?,?,?,?,?)
+               ON DUPLICATE KEY UPDATE rate_flat=VALUES(rate_flat), rate_wait=VALUES(rate_wait), rate_total_cars=VALUES(rate_total_cars), rate_ot_normal=VALUES(rate_ot_normal), rate_trip=VALUES(rate_trip), rate_ot_holiday=VALUES(rate_ot_holiday), rate_trip_night=VALUES(rate_trip_night)`, [
+                                route_id,
+                                v.rate_flat,
+                                v.rate_wait,
+                                v.rate_total_cars,
+                                v.rate_ot_normal,
+                                v.rate_trip,
+                                v.rate_ot_holiday,
+                                v.rate_trip_night
+                            ]));
+                    } else {
+                        throw e3;
+                    }
+                }
+            } else {
+                // Different error: still allow fallback without updated_by columns
+                const isUnknownUpdatedBy = /Unknown column 'updated_by'/i.test(msg);
+                if (isUnknownUpdatedBy) {
+                    await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_rates (route_id, rate_flat, rate_wait, rate_total_cars, rate_ot_normal, rate_trip, rate_ot_holiday, rate_trip_night)
+             VALUES (?,?,?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE rate_flat=VALUES(rate_flat), rate_wait=VALUES(rate_wait), rate_total_cars=VALUES(rate_total_cars), rate_ot_normal=VALUES(rate_ot_normal), rate_trip=VALUES(rate_trip), rate_ot_holiday=VALUES(rate_ot_holiday), rate_trip_night=VALUES(rate_trip_night)`, [
+                            route_id,
+                            v.rate_flat,
+                            v.rate_wait,
+                            v.rate_total_cars,
+                            v.rate_ot_normal,
+                            v.rate_trip,
+                            v.rate_ot_holiday,
+                            v.rate_trip_night
+                        ]));
+                } else {
+                    throw err;
+                }
+            }
         }
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             ok: true

@@ -833,10 +833,22 @@ async function GET(request) {
         status: 400
     });
     // Fetch daily rows
-    const dailyRows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT the_date, route_id, pay_flat, pay_wait, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
-     FROM vendor_payments WHERE the_date = ?`, [
-            the_date
-        ]));
+    // Attempt to fetch with new column pay_total_cars; fallback if column doesn't exist yet
+    let dailyRows;
+    try {
+        dailyRows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT the_date, route_id, pay_flat, pay_wait, pay_total_cars, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
+       FROM vendor_payments WHERE the_date = ?`, [
+                the_date
+            ]));
+    } catch (err) {
+        const msg = String(err?.message || '');
+        const isUnknown = err?.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(msg);
+        if (!isUnknown) throw err;
+        dailyRows = await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`SELECT the_date, route_id, pay_flat, pay_wait, NULL AS pay_total_cars, pay_ot_normal, pay_trip, pay_ot_holiday, pay_trip_night
+       FROM vendor_payments WHERE the_date = ?`, [
+                the_date
+            ]));
+    }
     // Merge in monthly overrides for pay_flat if any
     const dt = new Date(the_date);
     const monthStart = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1)).toISOString().slice(0, 10);
@@ -863,6 +875,7 @@ async function GET(request) {
                 route_id: Number(routeId),
                 pay_flat: flat,
                 pay_wait: 0,
+                pay_total_cars: 0,
                 pay_ot_normal: 0,
                 pay_trip: 0,
                 pay_ot_holiday: 0,
@@ -895,6 +908,7 @@ async function POST(request) {
     const allowed = [
         'pay_flat',
         'pay_wait',
+        'pay_total_cars',
         'pay_ot_normal',
         'pay_trip',
         'pay_ot_holiday',
@@ -928,14 +942,43 @@ async function POST(request) {
                 user.id || null
             ]));
     } else {
-        await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
-       VALUES (?,?,?,?)
-       ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`, [
-                the_date,
-                route_id,
-                val,
-                user.id || null
-            ]));
+        // Generic upsert; attempt with column. If column missing and it's pay_total_cars, try to add column automatically.
+        try {
+            await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
+         VALUES (?,?,?,?)
+         ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`, [
+                    the_date,
+                    route_id,
+                    val,
+                    user.id || null
+                ]));
+        } catch (err) {
+            const msg = String(err?.message || '');
+            const isUnknown = err?.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(msg);
+            if (isUnknown && key === 'pay_total_cars') {
+                // Try to ALTER table add column then retry
+                try {
+                    await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`ALTER TABLE vendor_payments ADD COLUMN pay_total_cars INT NOT NULL DEFAULT 0`));
+                    await withInitRetry(()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["query"])(`INSERT INTO vendor_payments (the_date, route_id, ${key}, updated_by)
+             VALUES (?,?,?,?)
+             ON DUPLICATE KEY UPDATE ${key}=VALUES(${key}), updated_by=VALUES(updated_by)`, [
+                            the_date,
+                            route_id,
+                            val,
+                            user.id || null
+                        ]));
+                } catch (e2) {
+                    console.error('Failed to add pay_total_cars column:', e2?.message || e2);
+                    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                        error: 'cannot add column pay_total_cars'
+                    }, {
+                        status: 500
+                    });
+                }
+            } else {
+                throw err;
+            }
+        }
     }
     return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
         ok: true
