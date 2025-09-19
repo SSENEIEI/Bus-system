@@ -464,8 +464,8 @@ export default function OtOverview() {
             </div>
           ) : ((Array.isArray(user?.department_ids) && user.department_ids.length) || user?.department_id) ? (
             <div style={styles.tableFooterRow}>
-              <button style={styles.approveBtn} onClick={()=>toggleMyDeptLock(true)}>ยืนยันการจอง</button>
-              <button style={styles.cancelGrayBtn} onClick={()=>toggleMyDeptLock(false)}>ยกเลิก</button>
+              {/* <button style={styles.approveBtn} onClick={()=>toggleMyDeptLock(true)}>ยืนยันการจอง</button>
+              <button style={styles.cancelGrayBtn} onClick={()=>toggleMyDeptLock(false)}>ยกเลิก</button> */}
             </div>
           ) : null}
           </div>

@@ -1842,11 +1842,14 @@ export default function Home() {
                   <button style={{ ...styles.cancelButton, padding: '12px 18px' }} onClick={()=>toggleOtLock(false)}>ยกเลิก</button>
                 </>
               ) : ((user?.isAdmin || user?.is_admin) && user?.department_id) ? (
+                // <button style={{ ...styles.confirmButton, padding: '12px 18px' }} onClick={()=>toggleMyDeptLock(true)}>ยืนยันการจอง</button>
+                //<button style={{ ...styles.cancelButton, padding: '12px 18px' }} onClick={()=>toggleMyDeptLock(false)}>ยกเลิก</button>
+                //ถ้าจะให้ปรากกฎปุ่มเฉพาะให้ผู้ใช้ทั่วไป นำโค้ดข้างบนไปไว้ในคอมเม้นต์นี้
                 <>
-                  <button style={{ ...styles.confirmButton, padding: '12px 18px' }} onClick={()=>toggleMyDeptLock(true)}>ยืนยันการจอง</button>
-                  <button style={{ ...styles.cancelButton, padding: '12px 18px' }} onClick={()=>toggleMyDeptLock(false)}>ยกเลิก</button>
+                  
                 </>
-              ) : null}
+              )
+               : null}
               </div>
             </div>
           </div>
