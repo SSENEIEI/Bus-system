@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query, initDatabase } from '@/lib/db';
-import { getUserFromRequest, isDateLocked, isDepartmentLocked } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 
 async function withInitRetry(action) {
   try {
@@ -38,12 +38,46 @@ export async function POST(request) {
   if (!the_date || !route_id || !plant_id || !department_id || !shift_id || !depart_time_id) {
     return NextResponse.json({ error: 'missing fields' }, { status: 400 });
   }
-  // Lock check (super admin bypass)
-  // Department-level lock has priority; if no dept lock row then fall back to global lock
-  const deptLocked = await isDepartmentLocked(the_date, department_id);
-  // Allow adminga to always bypass locks
+  // Lock check with precedence and explicit unlock override
+  // Precedence: (1) Global time-slot lock (highest) -> (2) Dept time-slot lock -> (3) Dept day lock -> (4) Global day lock
+  // Explicit time-slot unlock rows (is_locked=0) override day-level locks.
   const isAdminga = String(user?.username || '').toLowerCase() === 'adminga';
-  if (deptLocked && !(user.is_super_admin || isAdminga)) {
+  let effectiveLocked = false;
+  // 1) Global time-slot lock
+  const timeRows = await withInitRetry(() => query(
+    'SELECT is_locked FROM ot_time_locks WHERE the_date=? AND shift_id=? AND depart_time_id=?',
+    [the_date, Number(shift_id), Number(depart_time_id)]
+  ));
+  if (timeRows.length) {
+    if (Number(timeRows[0].is_locked) === 1) effectiveLocked = true;
+    else effectiveLocked = false; // explicit unlock overrides day-level
+  } else {
+    // 2) Department time-slot lock (consider only if no explicit global time row)
+    const deptTimeRows = await withInitRetry(() => query(
+      'SELECT is_locked FROM ot_department_time_locks WHERE the_date=? AND department_id=? AND shift_id=? AND depart_time_id=?',
+      [the_date, Number(department_id), Number(shift_id), Number(depart_time_id)]
+    ));
+    if (deptTimeRows.length) {
+      effectiveLocked = Number(deptTimeRows[0].is_locked) === 1;
+    } else {
+      // 3) Department day-level lock
+      const deptDayRows = await withInitRetry(() => query(
+        'SELECT is_locked FROM ot_department_locks WHERE the_date=? AND department_id=?',
+        [the_date, Number(department_id)]
+      ));
+      if (deptDayRows.length) {
+        effectiveLocked = Number(deptDayRows[0].is_locked) === 1;
+      } else {
+        // 4) Global day-level lock
+        const dayRows = await withInitRetry(() => query(
+          'SELECT is_locked FROM ot_locks WHERE the_date=?',
+          [the_date]
+        ));
+        effectiveLocked = dayRows.length ? Number(dayRows[0].is_locked) === 1 : false;
+      }
+    }
+  }
+  if (effectiveLocked && !(user.is_super_admin || isAdminga)) {
     return NextResponse.json({ error: 'locked' }, { status: 423 });
   }
   // Scope check: only super admin can write anywhere; others must match their plant and be in one of their departments
