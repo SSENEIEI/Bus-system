@@ -17,6 +17,8 @@ export default function TruckTable() {
   const [departTimes, setDepartTimes] = useState([]); // by shift
   const [countsBy, setCountsBy] = useState({}); // { dtId: { routeId: { plantId: totalCount } , ttl: { routeId: total } } }
   const [carPlan, setCarPlan] = useState({}); // { dtId: { routeId: car_count } }
+  const [countsLoading, setCountsLoading] = useState(false);
+  const countsSeq = useRef(0); // prevent stale updates
   const [carModal, setCarModal] = useState({ open:false, dt:null, route:null, value:0 });
   const [hiddenDepartTimeIds, setHiddenDepartTimeIds] = useState([]); // hides loaded from server for current date+shift
   const [autoHideEnabled, setAutoHideEnabled] = useState(false); // global toggle: auto hide empty times for all dates
@@ -102,29 +104,42 @@ export default function TruckTable() {
 
   // Aggregate per depart time -> per route -> per plant (sum across departments)
   const loadCounts = async () => {
-    if (!date || !shiftId || departTimes.length===0) { setCountsBy({}); return; }
-    const acc = {};
-    for (const dt of departTimes) {
-      const rows = await fetchJSON(`/api/ot/counts?date=${date}&shiftId=${shiftId}&departTimeId=${dt.id}`) || [];
-      const map = {};
-      for (const row of (Array.isArray(rows)? rows: [])) {
-        const rId = row.route_id; const pId = row.plant_id; const c = Number(row.count)||0;
-        if (!map[rId]) map[rId] = {};
-        map[rId][pId] = (map[rId][pId]||0) + c; // sum across departments
-      }
-      const ttl = {};
-      Object.keys(map).forEach(rId => {
-        ttl[rId] = Object.values(map[rId]).reduce((s,v)=> s + (Number(v)||0), 0);
-      });
-      acc[dt.id] = { map, ttl };
+    // bump sequence to mark this run; only latest run can commit state
+    const mySeq = ++countsSeq.current;
+    if (!date || !shiftId || departTimes.length === 0) {
+      // อย่าเคลียร์ตัวเลขระหว่างโหลด เพื่อไม่ให้กระพริบ
+      return;
     }
-    setCountsBy(acc);
+    setCountsLoading(true);
+    try {
+      const acc = {};
+      for (const dt of departTimes) {
+        const rows = await fetchJSON(`/api/ot/counts?date=${date}&shiftId=${shiftId}&departTimeId=${dt.id}`) || [];
+        const map = {};
+        for (const row of (Array.isArray(rows)? rows: [])) {
+          const rId = row.route_id; const pId = row.plant_id; const c = Number(row.count)||0;
+          if (!map[rId]) map[rId] = {};
+          map[rId][pId] = (map[rId][pId]||0) + c; // sum across departments
+        }
+        const ttl = {};
+        Object.keys(map).forEach(rId => {
+          ttl[rId] = Object.values(map[rId]).reduce((s,v)=> s + (Number(v)||0), 0);
+        });
+        acc[dt.id] = { map, ttl };
+      }
+      // commit only if this is the latest run
+      if (countsSeq.current === mySeq) setCountsBy(acc);
+    } finally {
+      if (countsSeq.current === mySeq) setCountsLoading(false);
+    }
   };
   useEffect(() => { loadCounts(); }, [date, shiftId, departTimes]);
 
   // Load car plan overrides per depart time
+  const carSeq = useRef(0);
   const loadCarPlan = async () => {
-    if (!date || !shiftId || departTimes.length===0) { setCarPlan({}); return; }
+    const mySeq = ++carSeq.current;
+    if (!date || !shiftId || departTimes.length===0) { return; }
     const acc = {};
     for (const dt of departTimes) {
       const rows = await fetchJSON(`/api/ot/cars?date=${date}&shiftId=${shiftId}&departTimeId=${dt.id}`) || [];
@@ -132,7 +147,7 @@ export default function TruckTable() {
       for (const r of (Array.isArray(rows)?rows:[])) m[r.route_id] = Number(r.car_count)||0;
       acc[dt.id] = m;
     }
-    setCarPlan(acc);
+    if (carSeq.current === mySeq) setCarPlan(acc);
   };
   useEffect(() => { loadCarPlan(); }, [date, shiftId, departTimes]);
 
@@ -336,6 +351,7 @@ export default function TruckTable() {
                 <tr key={r.id}>
                   <td style={styles.tdRoute}><span style={styles.routeIndex}>{index+1}.</span> <span>{r.name}</span></td>
                   {displayDepartTimes.map((dt, dtIdx) => {
+                    // อย่ารีเซ็ตตัวเลขขณะกำลังโหลด เพื่อลดการกะพริบ
                     const rec = countsBy[dt.id] || { map:{}, ttl:{} };
                     const ttl = Number(rec.ttl?.[r.id]||0);
                     return (
